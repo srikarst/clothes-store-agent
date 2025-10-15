@@ -1,0 +1,80 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "db:up",
+            "type": "shell",
+            "command": "docker compose -f ./docker-compose.yml up -d sqlserver",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "db:wait-and-create (Windows PowerShell)",
+            "type": "shell",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"\n        $retries = 30;\n        for ($i=0; $i -lt $retries; $i++) {\n          $status = (docker inspect -f '{{.State.Health.Status}}' quickshop-sqlserver-skeleton-sqlserver-1 2>$null);\n          if ($status -eq 'healthy') { break }\n          Write-Host \\\"waiting for sqlserver (status=$status) ...\\\"; Start-Sleep -s 2\n        }\n        docker compose exec sqlserver /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -Q \\\"IF DB_ID(''quickshop'') IS NULL CREATE DATABASE quickshop;\\\"\n        \"",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": [
+                "db:up"
+            ]
+        },
+        /* --- Self-healing wrapper + run (Windows) --- */
+        {
+            "label": "app:run (Windows, wrapper, 8081)",
+            "type": "shell",
+            "command": "cmd /c gradlew.bat bootRun --args=\"--server.port=8081\"",
+            "options": {
+                "cwd": "${workspaceFolder}/backend"
+            }
+        },
+        {
+            "label": "open:UI (Windows, 8081)",
+            "type": "shell",
+            "command": "start http://localhost:8081"
+        },
+        /* One-click flow */
+        {
+            "label": "Run (Windows): DB → Create → App (wrapper)",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "db:up",
+                "db:wait-and-create (Windows PowerShell)",
+                "app:run (Windows, wrapper)"
+            ]
+        },
+        {
+            "label": "db:apply-schema (mssql-tools v17)",
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "command": "bash -lc 'docker run --rm --network quickshop-sqlserver-skeleton_default -v \"${workspaceFolder}:/work\" mcr.microsoft.com/mssql-tools /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P \"YourStrong!Passw0rd\" -i /work/schema.sql'",
+            "windows": {
+                "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"docker run --rm --network quickshop-sqlserver-skeleton_default -v \\\"${workspaceFolder}:/work\\\" mcr.microsoft.com/mssql-tools /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'YourStrong!Passw0rd' -i /work/schema.sql\""
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "db:seed (mssql-tools v17)",
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "command": "bash -lc 'docker run --rm --network quickshop-sqlserver-skeleton_default -v \"${workspaceFolder}:/work\" mcr.microsoft.com/mssql-tools /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P \"YourStrong!Passw0rd\" -i /work/seed.sql'",
+            "windows": {
+                "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"docker run --rm --network quickshop-sqlserver-skeleton_default -v \\\"${workspaceFolder}:/work\\\" mcr.microsoft.com/mssql-tools /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'YourStrong!Passw0rd' -i /work/seed.sql\""
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "db:seed (Windows)",
+            "type": "shell",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"\n  $cid = docker compose -f ./docker-compose.yml ps -q sqlserver;\n  docker cp ./seed/quickshop.sql \\\"${cid}:/tmp/quickshop.sql\\\";\n  docker compose -f ./docker-compose.yml exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -Q \\\"IF DB_ID('quickshop') IS NULL CREATE DATABASE quickshop;\\\";\n  docker compose -f ./docker-compose.yml exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -d quickshop -i /tmp/quickshop.sql\n\"",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        }
+    ]
+}

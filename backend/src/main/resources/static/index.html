@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>QuickShop SQL Server Skeleton</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #f6f7fb;
+      --muted: #666;
+      --border: #e7e8ee;
+      --btn: #2b6fff;
+      --btnTxt: #fff;
+      --code: #0b132b;
+      --codeTxt: #e6eefb;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 24px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+    }
+
+    p.hint {
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: var(--btn);
+      color: var(--btnTxt);
+      border: 0;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #e9ecf8;
+      color: #1b2b6b;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="search"],
+    textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    textarea {
+      min-height: 220px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      border-top: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+    }
+
+    th {
+      background: #fff;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    pre.code {
+      background: var(--code);
+      color: var(--codeTxt);
+      padding: 14px;
+      border-radius: 10px;
+      overflow: auto;
+    }
+
+    small.tag {
+      background: #eef2ff;
+      color: #3046b1;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    .pill {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #eef5ff;
+      color: #2d4ec4;
+    }
+
+    .cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 980px) {
+
+      .grid,
+      .cols {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>QuickShop SQL Server Skeleton</h1>
+  <p class="hint">No AI in the backend logic here — the <span class="mono">/api/nlq</span> endpoint is a simple
+    rule-based mapper you can later replace with an LLM.</p>
+
+  <div class="grid">
+
+    <!-- SCHEMA -->
+    <div class="card">
+      <h2>Schema</h2>
+      <div class="row" style="margin-bottom:8px;">
+        <button id="btnLoadSchema">Load Schema</button>
+        <span id="schemaStatus" class="pill" style="display:none;">✓ Loaded</span>
+      </div>
+      <table id="schemaTable">
+        <thead>
+          <tr>
+            <th>Table</th>
+            <th>Columns</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <h3 style="margin-top:16px;">Foreign Keys</h3>
+      <table id="fksTable">
+        <thead>
+          <tr>
+            <th>From</th>
+            <th>→</th>
+            <th>To</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <h3 style="margin-top:16px;">Sample Values</h3>
+      <table id="samplesTable">
+        <thead>
+          <tr>
+            <th>Column</th>
+            <th>Samples</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- RUN SELECT -->
+    <div class="card">
+      <h2>Run SELECT</h2>
+      <textarea id="sql" spellcheck="false">SELECT TOP 5 name FROM sys.tables</textarea>
+      <div class="row" style="margin-top:8px;">
+        <label class="mono" style="flex:1;">Params (JSON):
+          <input id="params" type="text" placeholder='{"nameLike":"%"}' />
+        </label>
+        <label class="mono">Max Rows:
+          <input id="maxRows" type="number" value="200" style="width:120px;" />
+        </label>
+        <label class="mono">Timeout (s):
+          <input id="timeout" type="number" value="20" style="width:120px;" />
+        </label>
+        <button id="btnRun">Run</button>
+      </div>
+    </div>
+
+    <!-- NLQ: NATURAL LANGUAGE -->
+    <div class="card">
+      <h2>Ask in English (Text → SQL)</h2>
+      <input id="nlqPrompt" type="search" placeholder='e.g., "top 5 products by revenue last month"' />
+      <div class="row" style="margin:8px 0 12px;">
+        <label class="mono"><input id="nlqExecute" type="checkbox" checked /> execute SQL</label>
+        <button id="btnNlq">Run NLQ</button>
+        <button id="btnNlqFill" class="secondary" title="Copy generated SQL to the Run SELECT box">Copy SQL to
+          editor</button>
+      </div>
+      <div class="cols">
+        <div>
+          <div class="row" style="justify-content:space-between;">
+            <strong>Generated SQL</strong>
+            <small id="nlqIntent" class="tag" style="display:none;"></small>
+          </div>
+          <pre class="code" id="nlqSql">(SQL will appear here)</pre>
+        </div>
+        <div>
+          <strong>NLQ Result</strong>
+          <pre class="code" id="nlqResult">{}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULT (for manual SELECT) -->
+    <div class="card">
+      <h2>Result</h2>
+      <pre class="code" id="result">{}</pre>
+    </div>
+  </div>
+
+  <script>
+    const $ = s => document.querySelector(s);
+    const pretty = o => JSON.stringify(o, null, 2);
+
+    async function loadSchema() {
+      const res = await fetch('/api/schema');
+      const data = await res.json();
+
+      // tables + columns
+      const tbody = $('#schemaTable tbody');
+      tbody.innerHTML = '';
+      (data.tables || []).forEach(t => {
+        const key = (t.TABLE_SCHEMA || 'dbo') + '.' + t.TABLE_NAME;
+        const cols = (data.columnsByTable?.[key] || []).map(c =>
+          `${c.COLUMN_NAME} (${String(c.DATA_TYPE).replace(/\s+/g, ' ')})`
+        ).join(', ');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="mono">${key}</td><td class="mono">${cols}</td>`;
+        tbody.appendChild(tr);
+      });
+      $('#schemaStatus').style.display = 'inline-block';
+
+      // foreign keys
+      const fkBody = $('#fksTable tbody');
+      fkBody.innerHTML = '';
+      (data.fks || []).forEach(fk => {
+        const from = `${fk.from_schema}.${fk.from_table}.${fk.from_column}`;
+        const to = `${fk.to_schema}.${fk.to_table}.${fk.to_column}`;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="mono">${from}</td><td>→</td><td class="mono">${to}</td>`;
+        fkBody.appendChild(tr);
+      });
+      if ((data.fks || []).length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="3"><em>No FKs found (or filtered by allowTables)</em></td>`;
+        fkBody.appendChild(tr);
+      }
+
+      // sample values
+      const sampBody = $('#samplesTable tbody');
+      sampBody.innerHTML = '';
+      const entries = Object.entries(data.samplesByColumn || {});
+      if (entries.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="2"><em>No samples (increase app.schemaSamplesPerColumn?)</em></td>`;
+        sampBody.appendChild(tr);
+      } else {
+        entries.forEach(([col, vals]) => {
+          const chips = (vals || []).map(v => `<small class="tag">${v}</small>`).join(' ');
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td class="mono">${col}</td><td>${chips}</td>`;
+          sampBody.appendChild(tr);
+        });
+      }
+    }
+
+    // ---- Manual SELECT ----
+    async function runSelect() {
+      let params = {};
+      const ptxt = $('#params').value.trim();
+      if (ptxt) {
+        try { params = JSON.parse(ptxt); } catch (e) { alert('Params JSON is invalid'); return; }
+      }
+      const body = {
+        sql: $('#sql').value,
+        params,
+        maxRows: parseInt($('#maxRows').value || '200'),
+        timeoutSeconds: parseInt($('#timeout').value || '20')
+      };
+      const res = await fetch('/api/query', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      });
+      $('#result').textContent = pretty(await res.json());
+    }
+
+    // ---- NLQ ----
+    async function runNlq() {
+      const prompt = $('#nlqPrompt').value.trim();
+      if (!prompt) { alert('Enter a prompt'); return; }
+      const execute = $('#nlqExecute').checked;
+
+      const res = await fetch('/api/nlq', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, execute })
+      });
+      const data = await res.json();
+
+      $('#nlqIntent').style.display = data.recognizedIntent ? 'inline-block' : 'none';
+      $('#nlqIntent').textContent = data.recognizedIntent || '';
+      $('#nlqSql').textContent = data.sql || '(no SQL)';
+
+      // If unrecognized, show suggestions
+      if (data.error === 'UNRECOGNIZED') {
+        $('#nlqResult').textContent = pretty({ message: data.message, try: data.try });
+        return;
+      }
+
+      // Show result or dry-run info
+      if (execute && data.result) {
+        $('#nlqResult').textContent = pretty(data.result);
+      } else {
+        $('#nlqResult').textContent = pretty({ ran: data.ran, params: data.params || {} });
+      }
+    }
+
+    // Copy NLQ SQL into the manual editor
+    function nlqFill() {
+      const sql = $('#nlqSql').textContent;
+      if (sql && !sql.startsWith('(SQL')) $('#sql').value = sql;
+    }
+
+    // Bindings
+    $('#btnLoadSchema').addEventListener('click', loadSchema);
+    $('#btnRun').addEventListener('click', runSelect);
+    $('#btnNlq').addEventListener('click', runNlq);
+    $('#btnNlqFill').addEventListener('click', nlqFill);
+
+    // Convenience: Enter key in NLQ prompt runs it
+    $('#nlqPrompt').addEventListener('keydown', e => { if (e.key === 'Enter') runNlq(); });
+
+    // Optional: auto-load schema on first load
+    loadSchema().catch(() => { });
+  </script>
+</body>
+
+</html>

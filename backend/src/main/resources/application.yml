@@ -1,0 +1,45 @@
+server:
+  port: 8080
+
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${DB_URL:}
+    username: ${DB_USER:}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+  jackson:
+    serialization:
+      INDENT_OUTPUT: true
+
+app:
+  readOnly: true
+  # Simple hard blocks at the app layer (DB role should also be read-only)
+  disallowSqlKeywords:
+    - INSERT
+    - UPDATE
+    - DELETE
+    - DROP
+    - ALTER
+    - TRUNCATE
+    - CREATE
+    - GRANT
+    - REVOKE
+  defaultMaxRows: 200
+  defaultQueryTimeoutSeconds: 20
+  # Optional allowlist. Empty = allow all tables. Put names like: ["dbo.customers","dbo.orders"]
+  # Optional: limit what /api/schema (and later NLQ) exposes
+  allowTables:
+    - dbo.customers
+    - dbo.products
+    - dbo.orders
+    - dbo.order_items
+  # How many distinct sample values per column to fetch
+  schemaSamplesPerColumn: 5
+
+  nlqProvider: ${APP_NLQ_PROVIDER:rule}
+  azureOpenaiEndpoint: ${APP_AZURE_ENDPOINT:}
+  azureOpenaiDeployment: ${APP_AZURE_DEPLOYMENT:}
+  azureOpenaiApiVersion: ${APP_AZURE_API_VERSION:}
+  azureOpenaiApiKey: ${APP_AZURE_API_KEY:}

@@ -1,0 +1,16 @@
+# Dotenv files
+.env
+.env.*
+backend/.env
+backend/.env.*
+
+# Gradle build outputs
+.gradle/
+**/build/
+**/out/
+
+# Compiled artifacts
+*.class
+*.jar
+*.war
+*.ear
