@@ -1,12 +1,12 @@
-package com.example.quickshop.nlq;
+package com.example.clothesstoreagent.nlq;
 
 import java.util.List;
 import java.util.Map;
 
 public interface NlqProvider {
     final class Plan {
-        public final String intent;           // e.g., "top_products_last_month"
-        public final String sql;              // compiled SELECT
+        public final String intent;
+        public final String sql;
         public final Map<String, Object> params;
 
         public Plan(String intent, String sql, Map<String, Object> params) {

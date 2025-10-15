@@ -1,4 +1,4 @@
-App: QuickShop Text→SQL (Spring Boot + SQL Server).
+App: Clothes Store Agent (Spring Boot + SQL Server).
 Key rules for model outputs:
 - ONE SELECT only, SQL Server dialect.
 - Revenue = SUM(oi.qty * oi.unit_price * (1 - oi.discount))

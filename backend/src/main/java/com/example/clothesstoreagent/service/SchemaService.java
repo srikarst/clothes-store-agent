@@ -1,6 +1,6 @@
-package com.example.quickshop.service;
+package com.example.clothesstoreagent.service;
 
-import com.example.quickshop.config.AppProps;
+import com.example.clothesstoreagent.config.AppProps;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +21,6 @@ public class SchemaService {
     public Map<String, Object> getSchema() {
         Map<String, Object> out = new LinkedHashMap<>();
 
-        // Tables
         List<Map<String, Object>> tables = jdbc.queryForList("""
             SELECT TABLE_SCHEMA, TABLE_NAME
             FROM INFORMATION_SCHEMA.TABLES
@@ -41,7 +40,6 @@ public class SchemaService {
                     .collect(Collectors.toList());
         out.put("tables", filteredTables);
 
-        // Columns
         List<Map<String, Object>> cols = jdbc.queryForList("""
             SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE, IS_NULLABLE
             FROM INFORMATION_SCHEMA.COLUMNS
@@ -60,7 +58,6 @@ public class SchemaService {
         }
         out.put("columnsByTable", columnsByTable);
 
-        // Foreign keys
         List<Map<String, Object>> fks = jdbc.queryForList("""
             SELECT
               fk.name AS constraint_name,
@@ -85,7 +82,6 @@ public class SchemaService {
         }
         out.put("fks", fks);
 
-        // Samples
         int perCol = Math.max(0, props.getSchemaSamplesPerColumn());
         Map<String, List<String>> samplesByColumn = new LinkedHashMap<>();
 
@@ -111,7 +107,7 @@ public class SchemaService {
                         if (!vals.isEmpty()) {
                             samplesByColumn.put(schema + "." + table + "." + col, vals);
                         }
-                    } catch (Exception ignore) { /* skip */ }
+                    } catch (Exception ignore) { }
                 }
             }
         }
@@ -121,6 +117,6 @@ public class SchemaService {
     }
 
     private static String quote(String ident) {
-        return "[" + ident.replace("]", "]]") + "]";
+        return "[" + ident.replace("]", "]]" ) + "]";
     }
 }

@@ -1,12 +1,12 @@
-package com.example.quickshop;
+package com.example.clothesstoreagent;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class QuickshopApplication {
+public class ClothesStoreAgentApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(QuickshopApplication.class, args);
+        SpringApplication.run(ClothesStoreAgentApplication.class, args);
     }
 }

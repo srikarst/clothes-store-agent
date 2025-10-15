@@ -1,6 +1,4 @@
-package com.example.quickshop.nlq;
-
-import org.springframework.stereotype.Service;
+package com.example.clothesstoreagent.nlq;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -23,7 +21,6 @@ public class RuleBasedProvider implements NlqProvider {
         String p = prompt == null ? "" : prompt.trim();
         if (p.isEmpty()) throw unrecognized();
 
-        // 1) top N products by revenue last/previous month
         if (INTENT_TOP_PRODUCTS_LAST_MONTH.matcher(p).find()) {
             int topN = extractTopN(p, 5);
             String sql = """
@@ -34,15 +31,14 @@ public class RuleBasedProvider implements NlqProvider {
                     JOIN dbo.order_items oi ON oi.order_id = o.id
                     JOIN dbo.products p     ON p.id = oi.product_id
                     WHERE o.status = 'completed'
-                      AND o.created_at >= DATEADD(DAY,1,EOMONTH(SYSUTCDATETIME(),-2)) -- start of last month (UTC)
-                      AND o.created_at <  DATEADD(DAY,1,EOMONTH(SYSUTCDATETIME(),-1)) -- start of this month
+                      AND o.created_at >= DATEADD(DAY,1,EOMONTH(SYSUTCDATETIME(),-2))
+                      AND o.created_at <  DATEADD(DAY,1,EOMONTH(SYSUTCDATETIME(),-1))
                     GROUP BY p.name
                     ORDER BY revenue DESC
                     """.formatted(topN);
             return new Plan("top_products_last_month", sql, Map.of());
         }
 
-        // 2) revenue by product (no date filter)
         if (INTENT_REVENUE_BY_PRODUCT.matcher(p).find()) {
             String sql = """
                     SELECT
@@ -58,7 +54,6 @@ public class RuleBasedProvider implements NlqProvider {
             return new Plan("revenue_by_product", sql, Map.of());
         }
 
-        // 3) daily revenue last 7 days
         if (INTENT_DAILY_REVENUE_7D.matcher(p).find()) {
             String sql = """
                     SELECT
@@ -74,7 +69,6 @@ public class RuleBasedProvider implements NlqProvider {
             return new Plan("daily_revenue_7d", sql, Map.of());
         }
 
-        // 4) new vs returning customers between <start> and <end>
         Matcher m = INTENT_NEW_VS_RETURNING_BETWEEN.matcher(p);
         if (m.find()) {
             String start = m.group(1);

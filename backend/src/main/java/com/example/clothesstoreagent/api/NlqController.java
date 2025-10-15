@@ -1,7 +1,7 @@
-package com.example.quickshop.api;
+package com.example.clothesstoreagent.api;
 
-import com.example.quickshop.nlq.NlqProvider;
-import com.example.quickshop.service.QueryService;
+import com.example.clothesstoreagent.nlq.NlqProvider;
+import com.example.clothesstoreagent.service.QueryService;
 import jakarta.validation.constraints.NotBlank;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +18,7 @@ public class NlqController {
 
     private static final Logger log = LoggerFactory.getLogger(NlqController.class);
 
-    private final NlqProvider nlq;   // <-- interface
+    private final NlqProvider nlq;
     private final QueryService query;
 
     public NlqController(NlqProvider nlq, QueryService query) {
@@ -28,7 +28,7 @@ public class NlqController {
 
     public static class NlqRequest {
         @NotBlank public String prompt;
-        public Boolean execute;         // default true
+        public Boolean execute;
         public Integer maxRows;
         public Integer timeoutSeconds;
     }

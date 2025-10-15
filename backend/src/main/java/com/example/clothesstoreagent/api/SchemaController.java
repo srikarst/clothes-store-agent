@@ -1,6 +1,6 @@
-package com.example.quickshop.api;
+package com.example.clothesstoreagent.api;
 
-import com.example.quickshop.service.SchemaService;
+import com.example.clothesstoreagent.service.SchemaService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 

@@ -1,7 +1,7 @@
-package com.example.quickshop.nlq;
+package com.example.clothesstoreagent.nlq;
 
-import com.example.quickshop.config.AppProps;
-import com.example.quickshop.service.SchemaService;
+import com.example.clothesstoreagent.config.AppProps;
+import com.example.clothesstoreagent.service.SchemaService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.net.URI;
@@ -13,11 +13,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Minimal Azure OpenAI chat call that asks for STRICT JSON: {"sql": "...",
- * "params": {...}}
- * Guardrails still enforced by QueryService.
- */
 public class AzureOpenAIProvider implements NlqProvider {
 
     private final AppProps props;
@@ -34,7 +29,6 @@ public class AzureOpenAIProvider implements NlqProvider {
     public Plan compile(String prompt) {
         requireConfigured();
 
-        // Compact schema for the model (allow-listed by your config)
         Map<String, Object> ctx = schema.getSchema();
 
         String system = """
@@ -67,12 +61,11 @@ public class AzureOpenAIProvider implements NlqProvider {
                         "Schema JSON:\n" + safeJson(ctx) + "\n\nUser request:\n" + prompt
                                 + "\n\nReturn ONLY strict JSON.")));
         body.put("temperature", 0);
-        // Ask for JSON from the model
-        body.put("response_format", Map.of("type", "json_object"));
+    body.put("response_format", Map.of("type", "json_object"));
 
-        String url = props.getAzureOpenaiEndpoint().replaceAll("/+$", "") +
-                "/openai/deployments/" + props.getAzureOpenaiDeployment() +
-                "/chat/completions?api-version=" + props.getAzureOpenaiApiVersion();
+    String url = props.getAzureOpenaiEndpoint().replaceAll("/+$", "") +
+        "/openai/deployments/" + props.getAzureOpenaiDeployment() +
+        "/chat/completions?api-version=" + props.getAzureOpenaiApiVersion();
 
         try {
             HttpRequest req = HttpRequest.newBuilder()
@@ -88,7 +81,6 @@ public class AzureOpenAIProvider implements NlqProvider {
                 throw new IllegalStateException("Azure call failed: HTTP " + resp.statusCode() + " - " + resp.body());
             }
 
-            // Extract content string (choices[0].message.content)
             Map<?, ?> json = om.readValue(resp.body(), Map.class);
             List<?> choices = (List<?>) json.get("choices");
             if (choices == null || choices.isEmpty()) {
@@ -98,7 +90,6 @@ public class AzureOpenAIProvider implements NlqProvider {
             Map<?, ?> message = (Map<?, ?>) choice0.get("message");
             String content = String.valueOf(message.get("content"));
 
-            // Parse model JSON to {sql, params}
             Map<?, ?> out = om.readValue(content, Map.class);
             String sql = String.valueOf(out.get("sql"));
 

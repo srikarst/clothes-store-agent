@@ -4,21 +4,112 @@
         {
             "label": "db:up",
             "type": "shell",
-            "command": "docker compose -f ./docker-compose.yml up -d sqlserver",
+            "command": "docker compose --project-name clothes-store-agent -f ./docker-compose.yml up -d sqlserver",
             "options": {
                 "cwd": "${workspaceFolder}"
             }
         },
         {
-            "label": "db:wait-and-create (Windows PowerShell)",
+            "label": "db:create-database",
             "type": "shell",
-            "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"\n        $retries = 30;\n        for ($i=0; $i -lt $retries; $i++) {\n          $status = (docker inspect -f '{{.State.Health.Status}}' quickshop-sqlserver-skeleton-sqlserver-1 2>$null);\n          if ($status -eq 'healthy') { break }\n          Write-Host \\\"waiting for sqlserver (status=$status) ...\\\"; Start-Sleep -s 2\n        }\n        docker compose exec sqlserver /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -Q \\\"IF DB_ID(''quickshop'') IS NULL CREATE DATABASE quickshop;\\\"\n        \"",
+            "command": "docker compose --project-name clothes-store-agent -f ./docker-compose.yml up -d sqlserver | Out-Null;\n  docker compose --project-name clothes-store-agent -f ./docker-compose.yml exec sqlserver /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'YourStrong!Passw0rd' -Q 'IF DB_ID(N''clothes_store_agent'') IS NULL CREATE DATABASE clothes_store_agent;'",
             "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "dependsOn": [
-                "db:up"
-            ]
+                "cwd": "${workspaceFolder}",
+                "shell": {
+                    "executable": "powershell.exe",
+                    "args": [
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-Command"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "db:create-schema",
+            "type": "shell",
+            "command": "docker compose --project-name clothes-store-agent -f ./docker-compose.yml up -d sqlserver | Out-Null;\n  docker compose --project-name clothes-store-agent -f ./docker-compose.yml exec sqlserver /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'YourStrong!Passw0rd' -d master -b -Q 'IF DB_ID(N''clothes_store_agent'') IS NULL THROW 50000, ''Database clothes_store_agent does not exist. Run db:create-database first.'', 1;';\n  docker compose --project-name clothes-store-agent -f ./docker-compose.yml exec sqlserver /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'YourStrong!Passw0rd' -d clothes_store_agent -b -Q 'IF OBJECT_ID(N''dbo.customers'', N''U'') IS NULL BEGIN CREATE TABLE dbo.customers ( id INT IDENTITY(1,1) PRIMARY KEY, name NVARCHAR(200) NOT NULL, email NVARCHAR(320) NULL UNIQUE, created_at DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME() ); END; IF OBJECT_ID(N''dbo.products'', N''U'') IS NULL BEGIN CREATE TABLE dbo.products ( id INT IDENTITY(1,1) PRIMARY KEY, name NVARCHAR(200) NOT NULL, category NVARCHAR(100) NOT NULL, price DECIMAL(12,2) NOT NULL CHECK (price >= 0) ); END; IF OBJECT_ID(N''dbo.orders'', N''U'') IS NULL BEGIN CREATE TABLE dbo.orders ( id BIGINT IDENTITY(1,1) PRIMARY KEY, customer_id INT NOT NULL REFERENCES dbo.customers(id), created_at DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(), status NVARCHAR(20) NOT NULL CHECK (status IN (N''pending'', N''completed'', N''cancelled'')) ); END; IF OBJECT_ID(N''dbo.order_items'', N''U'') IS NULL BEGIN CREATE TABLE dbo.order_items ( order_id BIGINT NOT NULL REFERENCES dbo.orders(id), product_id INT NOT NULL REFERENCES dbo.products(id), qty INT NOT NULL CHECK (qty > 0), unit_price DECIMAL(12,2) NOT NULL CHECK (unit_price >= 0), discount DECIMAL(5,4) NOT NULL DEFAULT 0 CHECK (discount BETWEEN 0 AND 0.99), CONSTRAINT PK_order_items PRIMARY KEY (order_id, product_id) ); END; IF OBJECT_ID(N''dbo.v_order_revenue'', N''V'') IS NOT NULL DROP VIEW dbo.v_order_revenue; EXEC sp_executesql N''CREATE VIEW dbo.v_order_revenue AS SELECT o.id AS order_id, SUM(oi.qty * oi.unit_price * (1 - oi.discount)) AS revenue FROM dbo.orders o JOIN dbo.order_items oi ON oi.order_id = o.id GROUP BY o.id''; IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = ''IX_orders_customer_created'' AND object_id = OBJECT_ID(N''dbo.orders'')) CREATE INDEX IX_orders_customer_created ON dbo.orders(customer_id, created_at DESC); IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = ''IX_order_items_product'' AND object_id = OBJECT_ID(N''dbo.order_items'')) CREATE INDEX IX_order_items_product ON dbo.order_items(product_id); IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = ''IX_products_category'' AND object_id = OBJECT_ID(N''dbo.products'')) CREATE INDEX IX_products_category ON dbo.products(category);'",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "shell": {
+                    "executable": "powershell.exe",
+                    "args": [
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-Command"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "db:populate",
+            "type": "shell",
+            "command": "docker compose --project-name clothes-store-agent -f ./docker-compose.yml up -d sqlserver | Out-Null;\n  docker compose --project-name clothes-store-agent -f ./docker-compose.yml exec sqlserver /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'YourStrong!Passw0rd' -d clothes_store_agent -b -Q 'IF OBJECT_ID(N''dbo.customers'', N''U'') IS NULL THROW 50001, ''Schema missing. Run db:create-schema first.'', 1; IF OBJECT_ID(N''dbo.products'', N''U'') IS NULL THROW 50002, ''Schema missing. Run db:create-schema first.'', 1; IF OBJECT_ID(N''dbo.orders'', N''U'') IS NULL THROW 50003, ''Schema missing. Run db:create-schema first.'', 1; IF OBJECT_ID(N''dbo.order_items'', N''U'') IS NULL THROW 50004, ''Schema missing. Run db:create-schema first.'', 1; DELETE FROM dbo.order_items; DELETE FROM dbo.orders; DELETE FROM dbo.products; DELETE FROM dbo.customers; DBCC CHECKIDENT(''dbo.orders'', RESEED, 0); DBCC CHECKIDENT(''dbo.products'', RESEED, 0); DBCC CHECKIDENT(''dbo.customers'', RESEED, 0); DECLARE @c1 INT, @c2 INT, @c3 INT; INSERT dbo.customers(name,email,created_at) VALUES (N''Alice'',N''alice@example.com'', DATEADD(DAY,-40, SYSUTCDATETIME())); SET @c1 = SCOPE_IDENTITY(); INSERT dbo.customers(name,email,created_at) VALUES (N''Bob'',N''bob@example.com'', DATEADD(DAY,-10, SYSUTCDATETIME())); SET @c2 = SCOPE_IDENTITY(); INSERT dbo.customers(name,email,created_at) VALUES (N''Cara'',N''cara@example.com'', DATEADD(DAY,-5, SYSUTCDATETIME())); SET @c3 = SCOPE_IDENTITY(); DECLARE @p1 INT, @p2 INT, @p3 INT, @p4 INT, @p5 INT; INSERT dbo.products(name,category,price) VALUES (N''T-Shirt'',N''Apparel Tops'',20.00); SET @p1 = SCOPE_IDENTITY(); INSERT dbo.products(name,category,price) VALUES (N''Hoodie'',N''Apparel Outerwear'',45.00); SET @p2 = SCOPE_IDENTITY(); INSERT dbo.products(name,category,price) VALUES (N''Jeans'',N''Apparel Bottoms'',55.00); SET @p3 = SCOPE_IDENTITY(); INSERT dbo.products(name,category,price) VALUES (N''Jacket'',N''Apparel Outerwear'',85.00); SET @p4 = SCOPE_IDENTITY(); INSERT dbo.products(name,category,price) VALUES (N''Sneakers'',N''Apparel Footwear'',65.00); SET @p5 = SCOPE_IDENTITY(); DECLARE @o1 BIGINT, @o2 BIGINT, @o3 BIGINT, @o4 BIGINT; INSERT dbo.orders(customer_id,created_at,status) VALUES (@c1, DATEADD(DAY,-35, SYSUTCDATETIME()), N''completed''); SET @o1 = SCOPE_IDENTITY(); INSERT dbo.orders(customer_id,created_at,status) VALUES (@c2, DATEADD(DAY,-34, SYSUTCDATETIME()), N''completed''); SET @o2 = SCOPE_IDENTITY(); INSERT dbo.orders(customer_id,created_at,status) VALUES (@c2, DATEADD(DAY,-3, SYSUTCDATETIME()), N''completed''); SET @o3 = SCOPE_IDENTITY(); INSERT dbo.orders(customer_id,created_at,status) VALUES (@c3, DATEADD(DAY,-2, SYSUTCDATETIME()), N''completed''); SET @o4 = SCOPE_IDENTITY(); INSERT dbo.order_items(order_id,product_id,qty,unit_price,discount) VALUES (@o1,@p1,2,20.00,0.00), (@o1,@p2,1,45.00,0.10), (@o2,@p4,1,85.00,0.00), (@o2,@p3,1,55.00,0.15), (@o3,@p5,2,65.00,0.05), (@o4,@p1,1,20.00,0.00), (@o4,@p2,1,45.00,0.00);'",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "shell": {
+                    "executable": "powershell.exe",
+                    "args": [
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-Command"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "db:truncate",
+            "type": "shell",
+            "command": "docker compose --project-name clothes-store-agent -f ./docker-compose.yml up -d sqlserver | Out-Null; docker compose --project-name clothes-store-agent -f ./docker-compose.yml exec sqlserver /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'YourStrong!Passw0rd' -d clothes_store_agent -b -Q 'DELETE FROM dbo.order_items; DELETE FROM dbo.orders; DELETE FROM dbo.products; DELETE FROM dbo.customers; DBCC CHECKIDENT(''dbo.orders'', RESEED, 0); DBCC CHECKIDENT(''dbo.products'', RESEED, 0); DBCC CHECKIDENT(''dbo.customers'', RESEED, 0);'",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "shell": {
+                    "executable": "powershell.exe",
+                    "args": [
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-Command"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "db:drop-tables",
+            "type": "shell",
+            "command": "docker compose --project-name clothes-store-agent -f ./docker-compose.yml up -d sqlserver | Out-Null; docker compose --project-name clothes-store-agent -f ./docker-compose.yml exec sqlserver /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'YourStrong!Passw0rd' -d clothes_store_agent -b -Q 'DROP VIEW IF EXISTS dbo.v_order_revenue; IF OBJECT_ID(N''dbo.order_items'', N''U'') IS NOT NULL DROP TABLE dbo.order_items; IF OBJECT_ID(N''dbo.orders'', N''U'') IS NOT NULL DROP TABLE dbo.orders; IF OBJECT_ID(N''dbo.products'', N''U'') IS NOT NULL DROP TABLE dbo.products; IF OBJECT_ID(N''dbo.customers'', N''U'') IS NOT NULL DROP TABLE dbo.customers;'",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "shell": {
+                    "executable": "powershell.exe",
+                    "args": [
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-Command"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "db:drop-database",
+            "type": "shell",
+            "command": "docker compose --project-name clothes-store-agent -f ./docker-compose.yml up -d sqlserver | Out-Null; docker compose --project-name clothes-store-agent -f ./docker-compose.yml exec sqlserver /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'YourStrong!Passw0rd' -d master -b -Q 'IF DB_ID(N''clothes_store_agent'') IS NOT NULL BEGIN ALTER DATABASE clothes_store_agent SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE clothes_store_agent; END'",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "shell": {
+                    "executable": "powershell.exe",
+                    "args": [
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-Command"
+                    ]
+                }
+            }
         },
         /* --- Self-healing wrapper + run (Windows) --- */
         {
@@ -40,41 +131,11 @@
             "dependsOrder": "sequence",
             "dependsOn": [
                 "db:up",
-                "db:wait-and-create (Windows PowerShell)",
-                "app:run (Windows, wrapper)"
+                "db:create-database",
+                "db:create-schema",
+                "db:populate",
+                "app:run (Windows, wrapper, 8081)"
             ]
-        },
-        {
-            "label": "db:apply-schema (mssql-tools v17)",
-            "type": "shell",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "command": "bash -lc 'docker run --rm --network quickshop-sqlserver-skeleton_default -v \"${workspaceFolder}:/work\" mcr.microsoft.com/mssql-tools /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P \"YourStrong!Passw0rd\" -i /work/schema.sql'",
-            "windows": {
-                "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"docker run --rm --network quickshop-sqlserver-skeleton_default -v \\\"${workspaceFolder}:/work\\\" mcr.microsoft.com/mssql-tools /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'YourStrong!Passw0rd' -i /work/schema.sql\""
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "db:seed (mssql-tools v17)",
-            "type": "shell",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "command": "bash -lc 'docker run --rm --network quickshop-sqlserver-skeleton_default -v \"${workspaceFolder}:/work\" mcr.microsoft.com/mssql-tools /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P \"YourStrong!Passw0rd\" -i /work/seed.sql'",
-            "windows": {
-                "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"docker run --rm --network quickshop-sqlserver-skeleton_default -v \\\"${workspaceFolder}:/work\\\" mcr.microsoft.com/mssql-tools /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'YourStrong!Passw0rd' -i /work/seed.sql\""
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "db:seed (Windows)",
-            "type": "shell",
-            "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"\n  $cid = docker compose -f ./docker-compose.yml ps -q sqlserver;\n  docker cp ./seed/quickshop.sql \\\"${cid}:/tmp/quickshop.sql\\\";\n  docker compose -f ./docker-compose.yml exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -Q \\\"IF DB_ID('quickshop') IS NULL CREATE DATABASE quickshop;\\\";\n  docker compose -f ./docker-compose.yml exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -d quickshop -i /tmp/quickshop.sql\n\"",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            }
         }
     ]
 }

@@ -1,4 +1,4 @@
-package com.example.quickshop.config;
+package com.example.clothesstoreagent.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -15,19 +15,15 @@ public class AppProps {
     private int defaultQueryTimeoutSeconds = 20;
     private List<String> allowTables = new ArrayList<>();
 
-    // NEW: how many distinct sample values to collect per column for /api/schema
     private int schemaSamplesPerColumn = 5;
 
-    // Which NLQ provider to use: rule | azure | aws
     private String nlqProvider = "rule";
 
-    // Azure OpenAI (flat keys for simple binding)
-    private String azureOpenaiEndpoint;     // e.g., https://your-resource.openai.azure.com
-    private String azureOpenaiApiKey;       // from Azure portal / key vault
-    private String azureOpenaiDeployment;   // your chat deployment name
+    private String azureOpenaiEndpoint;
+    private String azureOpenaiApiKey;
+    private String azureOpenaiDeployment;
     private String azureOpenaiApiVersion = "2024-02-15-preview";
 
-    // (Optional) AWS Bedrock placeholders
     private String awsRegion;
     private String bedrockModelId;
 
@@ -46,11 +42,10 @@ public class AppProps {
     public List<String> getAllowTables() { return allowTables; }
     public void setAllowTables(List<String> allowTables) { this.allowTables = allowTables; }
 
-    // NEW getters/setters
     public int getSchemaSamplesPerColumn() { return schemaSamplesPerColumn; }
     public void setSchemaSamplesPerColumn(int schemaSamplesPerColumn) { this.schemaSamplesPerColumn = schemaSamplesPerColumn; }
 
-     public String getNlqProvider() { return nlqProvider; }
+    public String getNlqProvider() { return nlqProvider; }
     public void setNlqProvider(String nlqProvider) { this.nlqProvider = nlqProvider; }
 
     public String getAzureOpenaiEndpoint() { return azureOpenaiEndpoint; }

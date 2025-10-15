@@ -1,7 +1,7 @@
-package com.example.quickshop.config;
+package com.example.clothesstoreagent.config;
 
-import com.example.quickshop.nlq.*;
-import com.example.quickshop.service.SchemaService;
+import com.example.clothesstoreagent.nlq.*;
+import com.example.clothesstoreagent.service.SchemaService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

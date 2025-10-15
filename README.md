@@ -1,6 +1,6 @@
-# QuickShop — Text → SQL on SQL Server
+# Clothes Store Agent — Text → SQL on SQL Server
 
-A tiny product you can extend with AI. It exposes:
+A tiny Text→SQL starter you can extend with AI. It exposes:
 
 - `GET /api/health` – health check  
 - `GET /api/schema` – tables, columns, FKs, sample values (filtered by allowlist)  
@@ -9,7 +9,7 @@ A tiny product you can extend with AI. It exposes:
 
 A minimal HTML page at `/` lets you test without a separate frontend.
 
-> Ships with **rule-based NLQ** by default. Flip one config to use **Azure OpenAI** for Text→SQL.
+> Ships with a **rule-based NLQ** provider. Flip one config to use **Azure OpenAI** instead.
 
 ---
 
@@ -32,25 +32,25 @@ A minimal HTML page at `/` lets you test without a separate frontend.
 **Bash / WSL / macOS**
 # If port 1433 is busy, change the left side (e.g., -p 11433:1433) and update DB_URL.
 docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=YourStrong!Passw0rd" \
-  -p 1433:1433 --name quickshop-sql -d mcr.microsoft.com/mssql/server:2022-latest
+  -p 1433:1433 --name clothes-store-agent-sql -d mcr.microsoft.com/mssql/server:2022-latest
 
 **PowerShell**
 docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=YourStrong!Passw0rd" `
-  -p 1433:1433 --name quickshop-sql -d mcr.microsoft.com/mssql/server:2022-latest
+  -p 1433:1433 --name clothes-store-agent-sql -d mcr.microsoft.com/mssql/server:2022-latest
 
-**(Optional) create DB `quickshop`:**
+**(Optional) create DB `clothes_store_agent`:**
 
 _Bash / WSL / macOS_
-docker exec -it quickshop-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' \
-  -Q "IF DB_ID('quickshop') IS NULL CREATE DATABASE quickshop;"
+docker exec -it clothes-store-agent-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' \
+  -Q "IF DB_ID('clothes_store_agent') IS NULL CREATE DATABASE clothes_store_agent;"
 
 _PowerShell_
-docker exec -it quickshop-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "YourStrong!Passw0rd" `
-  -Q "IF DB_ID('quickshop') IS NULL CREATE DATABASE quickshop;"
+docker exec -it clothes-store-agent-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "YourStrong!Passw0rd" `
+  -Q "IF DB_ID('clothes_store_agent') IS NULL CREATE DATABASE clothes_store_agent;"
 
 ### 2) Configure environment (`backend/.env`)
 
-The app now reads a `.env` file automatically (see `backend/.env.example`).
+The app reads a `.env` file automatically.
 
 ```bash
 cd backend
@@ -58,10 +58,10 @@ cp .env.example .env   # use copy-item on PowerShell
 # edit .env and set the values below
 ```
 
-`.env` keys (change the defaults if you exposed the DB or run Azure):
+`.env` keys (adjust if you change ports or enable Azure):
 
 ```
-DB_URL=jdbc:sqlserver://localhost:1433;databaseName=quickshop;encrypt=true;trustServerCertificate=true
+DB_URL=jdbc:sqlserver://localhost:1433;databaseName=clothes_store_agent;encrypt=true;trustServerCertificate=true
 DB_USER=sa
 DB_PASSWORD=YourStrong!Passw0rd
 
@@ -207,8 +207,8 @@ Open <http://localhost:8081> and use:
 ## Project structure
 backend/
 ├─ build.gradle, settings.gradle
-├─ src/main/java/com/example/quickshop/
-│ ├─ QuickshopApplication.java
+├─ src/main/java/com/example/clothesstoreagent/
+│ ├─ ClothesStoreAgentApplication.java
 │ ├─ api/HealthController.java
 │ ├─ api/SchemaController.java
 │ ├─ api/QueryController.java
@@ -218,11 +218,12 @@ backend/
 │ ├─ nlq/NlqProvider.java
 │ ├─ nlq/RuleBasedProvider.java
 │ ├─ nlq/AzureOpenAIProvider.java
+│ ├─ nlq/AwsBedrockProvider.java
 │ ├─ service/SchemaService.java
 │ └─ service/QueryService.java
 └─ src/main/resources/
-├─ application.yml
-└─ static/index.html
+  ├─ application.yml
+  └─ static/index.html
 
 
 ---
