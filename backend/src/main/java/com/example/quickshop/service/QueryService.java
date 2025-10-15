@@ -1,6 +1,8 @@
 package com.example.quickshop.service;
 
 import com.example.quickshop.config.AppProps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -13,6 +15,8 @@ import java.util.regex.Pattern;
 
 @Service
 public class QueryService {
+
+    private static final Logger log = LoggerFactory.getLogger(QueryService.class);
 
     private final NamedParameterJdbcTemplate namedJdbc;
     private final JdbcTemplate jdbc;
@@ -48,6 +52,10 @@ public class QueryService {
         try {
             jdbc.setMaxRows(max);
             jdbc.setQueryTimeout(timeout);
+            log.debug("Executing SQL maxRows={} timeout={} params={}",
+                    max,
+                    timeout,
+                    params != null ? params.keySet() : "none");
 
             SqlParameterSource psrc = new MapSqlParameterSource(params != null ? params : Map.of());
             List<Map<String, Object>> rows = namedJdbc.queryForList(sql, psrc);
@@ -63,6 +71,7 @@ public class QueryService {
             resp.put("rowCount", rows.size());
             resp.put("truncated", truncated);
             resp.put("rows", rows);
+            log.debug("Query succeeded rowCount={} truncated={}", rows.size(), truncated);
             return resp;
 
         } catch (DataAccessException ex) {
@@ -71,11 +80,13 @@ public class QueryService {
             err.put("message", ex.getMostSpecificCause() != null
                     ? ex.getMostSpecificCause().getMessage()
                     : ex.getMessage());
+            log.warn("Query failed: {}", err.get("message"));
             return err;
 
         } finally {
             jdbc.setMaxRows(prevMaxRows);
             jdbc.setQueryTimeout(prevTimeout);
+            log.trace("Restored JDBC settings maxRows={} timeout={}", prevMaxRows, prevTimeout);
         }
     }
 
