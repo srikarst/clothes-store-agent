@@ -17,7 +17,7 @@ public class RuleBasedProvider implements NlqProvider {
         Pattern.compile("(?i)\\bnew\\b.*\\breturning\\b.*\\bbetween\\b\\s*(\\d{4}-\\d{2}-\\d{2})\\s*\\b(and|to)\\b\\s*(\\d{4}-\\d{2}-\\d{2})");
 
     @Override
-    public Plan compile(String prompt) {
+    public Decision compile(String prompt) {
         String p = prompt == null ? "" : prompt.trim();
         if (p.isEmpty()) throw unrecognized();
 
@@ -36,7 +36,7 @@ public class RuleBasedProvider implements NlqProvider {
                     GROUP BY p.name
                     ORDER BY revenue DESC
                     """.formatted(topN);
-            return new Plan("top_products_last_month", sql, Map.of());
+            return Decision.execute("top_products_last_month", sql, Map.of());
         }
 
         if (INTENT_REVENUE_BY_PRODUCT.matcher(p).find()) {
@@ -51,7 +51,7 @@ public class RuleBasedProvider implements NlqProvider {
                     GROUP BY p.name
                     ORDER BY revenue DESC
                     """;
-            return new Plan("revenue_by_product", sql, Map.of());
+            return Decision.execute("revenue_by_product", sql, Map.of());
         }
 
         if (INTENT_DAILY_REVENUE_7D.matcher(p).find()) {
@@ -66,7 +66,7 @@ public class RuleBasedProvider implements NlqProvider {
                     GROUP BY CAST(o.created_at AS date)
                     ORDER BY [day]
                     """;
-            return new Plan("daily_revenue_7d", sql, Map.of());
+            return Decision.execute("daily_revenue_7d", sql, Map.of());
         }
 
         Matcher m = INTENT_NEW_VS_RETURNING_BETWEEN.matcher(p);
@@ -91,7 +91,7 @@ public class RuleBasedProvider implements NlqProvider {
             Map<String, Object> params = new LinkedHashMap<>();
             params.put("start_week", start);
             params.put("end_week", end);
-            return new Plan("new_vs_returning_between", sql, params);
+            return Decision.execute("new_vs_returning_between", sql, params);
         }
 
         throw unrecognized();

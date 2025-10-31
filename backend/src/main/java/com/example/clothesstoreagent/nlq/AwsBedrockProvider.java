@@ -15,7 +15,7 @@ public class AwsBedrockProvider implements NlqProvider {
     }
 
     @Override
-    public Plan compile(String prompt) {
+    public Decision compile(String prompt) {
         throw new IllegalStateException("Bedrock provider not implemented yet. Set app.nlqProvider=rule or azure.");
     }
 }
