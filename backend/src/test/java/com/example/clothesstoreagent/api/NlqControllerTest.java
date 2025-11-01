@@ -1,5 +1,6 @@
 package com.example.clothesstoreagent.api;
 
+import com.example.clothesstoreagent.config.AppProps;
 import com.example.clothesstoreagent.nlq.NlqProvider;
 import com.example.clothesstoreagent.service.QueryService;
 import org.junit.jupiter.api.Test;
@@ -22,13 +23,14 @@ class NlqControllerTest {
     @Test
     void clarifyDecisionDoesNotExecuteSql() {
         QueryService query = mock(QueryService.class);
+        AppProps props = mock(AppProps.class);
         NlqProvider provider = prompt -> NlqProvider.Decision.clarify(
                 "intent_clarify",
                 "Could you share the date range?",
                 List.of("date_range")
         );
 
-        NlqController controller = new NlqController(provider, query);
+        NlqController controller = new NlqController(provider, query, props);
         NlqController.NlqRequest req = new NlqController.NlqRequest();
         req.prompt = "sales for hoodies";
 
@@ -48,6 +50,7 @@ class NlqControllerTest {
     @Test
     void executeDecisionRunsQueryWhenAllowed() {
         QueryService query = mock(QueryService.class);
+        AppProps props = mock(AppProps.class);
         when(query.execute(eq("SELECT 1"), eq(Map.of("limit", 5)), any(), any()))
                 .thenReturn(Map.of("rowCount", 0));
 
@@ -57,7 +60,7 @@ class NlqControllerTest {
                 Map.of("limit", 5)
         );
 
-        NlqController controller = new NlqController(provider, query);
+        NlqController controller = new NlqController(provider, query, props);
         NlqController.NlqRequest req = new NlqController.NlqRequest();
         req.prompt = "top 5 products by revenue last month";
         req.execute = true;
@@ -78,12 +81,13 @@ class NlqControllerTest {
     @Test
     void rejectDecisionReturnsBadRequest() {
         QueryService query = mock(QueryService.class);
+        AppProps props = mock(AppProps.class);
         NlqProvider provider = prompt -> NlqProvider.Decision.reject(
                 "intent_reject",
                 "I can't perform destructive operations."
         );
 
-        NlqController controller = new NlqController(provider, query);
+        NlqController controller = new NlqController(provider, query, props);
         NlqController.NlqRequest req = new NlqController.NlqRequest();
         req.prompt = "drop the customers table";
 

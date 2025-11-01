@@ -1,6 +1,9 @@
 package com.example.clothesstoreagent.api;
 
+import com.example.clothesstoreagent.config.AppProps;
+import com.example.clothesstoreagent.nlq.JudgeGeneratorAzureProvider;
 import com.example.clothesstoreagent.nlq.NlqProvider;
+import com.example.clothesstoreagent.nlq.judge.RepairResponse;
 import com.example.clothesstoreagent.service.QueryService;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
@@ -23,9 +26,10 @@ public class NlqController {
     private final NlqProvider nlq;
     private final QueryService query;
 
-    public NlqController(NlqProvider nlq, QueryService query) {
+    public NlqController(NlqProvider nlq, QueryService query, AppProps props) {
         this.nlq = nlq;
         this.query = query;
+        // AppProps parameter kept for backward compatibility with tests
     }
 
     public static class NlqRequest {
@@ -80,11 +84,28 @@ public class NlqController {
                                 decision.intent,
                                 compact(decision.sql),
                                 decision.params.isEmpty() ? "none" : decision.params.keySet());
-                        Map<String, Object> result = query.execute(decision.sql, decision.params, req.maxRows, req.timeoutSeconds);
+                        
+                        Map<String, Object> result = executeWithRepair(
+                            req.prompt, 
+                            decision.sql, 
+                            decision.params, 
+                            req.maxRows, 
+                            req.timeoutSeconds
+                        );
+                        
                         resp.put("result", result);
-                        log.info("NLQ execution complete intent={} rows={}",
+                        
+                        // Check if repair was attempted
+                        if (result.containsKey("repaired") && Boolean.TRUE.equals(result.get("repaired"))) {
+                            resp.put("repaired", true);
+                            resp.put("originalSql", decision.sql);
+                            resp.put("sql", result.get("repairedSql"));
+                        }
+                        
+                        log.info("NLQ execution complete intent={} rows={} repaired={}",
                                 decision.intent,
-                                result.getOrDefault("rowCount", "n/a"));
+                                result.getOrDefault("rowCount", "n/a"),
+                                result.getOrDefault("repaired", false));
                     } else {
                         log.info("NLQ returning plan intent={} without execution", decision.intent);
                     }
@@ -132,5 +153,61 @@ public class NlqController {
         if (sql == null) { return ""; }
         String singleLine = sql.replaceAll("\\s+", " ").trim();
         return singleLine.length() > 200 ? singleLine.substring(0, 200) + "…" : singleLine;
+    }
+
+    /**
+     * Execute SQL with repair logic for Judge-Generator mode.
+     * If execution fails and the provider supports repair, attempt one repair.
+     */
+    private Map<String, Object> executeWithRepair(String originalPrompt, 
+                                                   String sql, 
+                                                   Map<String, Object> params,
+                                                   Integer maxRows, 
+                                                   Integer timeoutSeconds) {
+        // First attempt
+        Map<String, Object> result = query.execute(sql, params, maxRows, timeoutSeconds);
+        
+        // Check if it failed and if we can repair
+        if (result.containsKey("error") && nlq instanceof JudgeGeneratorAzureProvider judgeGen) {
+            String errorMsg = String.valueOf(result.get("message"));
+            log.warn("SQL execution failed: {}. Attempting repair...", errorMsg);
+            
+            try {
+                RepairResponse repairResp = judgeGen.callRepair(originalPrompt, sql, errorMsg);
+                
+                if (repairResp.getSql() == null || repairResp.getSql().isBlank()) {
+                    log.error("Repair returned empty SQL, returning original error");
+                    return result;
+                }
+                
+                String repairedSql = repairResp.getSql().trim();
+                Map<String, Object> repairedParams = repairResp.getParams() != null ? 
+                    repairResp.getParams() : Map.of();
+                
+                log.info("Repair produced new SQL (length={}), retrying execution", repairedSql.length());
+                
+                // Second attempt with repaired SQL
+                Map<String, Object> repairedResult = query.execute(repairedSql, repairedParams, maxRows, timeoutSeconds);
+                
+                if (!repairedResult.containsKey("error")) {
+                    // Success! Mark as repaired
+                    repairedResult.put("repaired", true);
+                    repairedResult.put("repairedSql", repairedSql);
+                    repairedResult.put("originalError", errorMsg);
+                    log.info("Repair successful! Rows returned: {}", repairedResult.get("rowCount"));
+                    return repairedResult;
+                } else {
+                    // Repair failed too
+                    log.error("Repair attempt failed: {}", repairedResult.get("message"));
+                    return result; // Return original error
+                }
+                
+            } catch (Exception e) {
+                log.error("Repair call failed: {}", e.getMessage(), e);
+                return result; // Return original error
+            }
+        }
+        
+        return result;
     }
 }

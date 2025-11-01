@@ -175,6 +175,61 @@ curl -s http://localhost:8081/api/nlq -H "Content-Type: application/json" \
 
 ---
 
+## Judge-Generator Mode (NEW!) — Judge → Generator + Repair
+
+The app now supports a **two-step NLQ flow** with automatic SQL repair:
+
+### Enable Judge-Generator Mode
+Add to your `.env`:
+```
+APP_NLQ_PROVIDER=azure
+APP_NLQ_MODE=judge-generator
+```
+
+### How It Works
+
+**Single-Call Mode (default)**: One LLM call returns everything  
+**Judge-Generator Mode**: Three-stage flow:
+
+1. **Judge** — Decides: `proceed` (clear) | `clarify` (ambiguous) | `reject` (unsafe)
+2. **Generator** — Produces SQL (if Judge says proceed)
+3. **Repair** — Fixes SQL on DB error (one retry)
+
+### Example: Clarify Response
+```json
+{
+  "decision": "clarify",
+  "question": "Could you specify the date range?",
+  "missing": ["date_range"],
+  "ran": false
+}
+```
+
+### Example: Execute with Repair
+```json
+{
+  "decision": "execute",
+  "sql": "SELECT TOP 10 ...",
+  "ran": true,
+  "repaired": true,
+  "originalSql": "SELECT TOP 10 ... (invalid)",
+  "result": { "rowCount": 10, "rows": [...] }
+}
+```
+
+### Configuration Options
+
+| Mode              | Behavior                                | Use Case                    |
+|-------------------|-----------------------------------------|-----------------------------|
+| `single-call`     | One LLM call (default)                  | Fast, simpler prompts       |
+| `judge-generator` | Judge → Generator + Repair              | Better clarification, repair|
+
+**All guardrails maintained**: Read-only, SELECT-only, allowlist, max rows, timeout.
+
+📖 **Full details**: See [JUDGE_GENERATOR_GUIDE.md](JUDGE_GENERATOR_GUIDE.md)
+
+---
+
 ## Minimal Web UI
 
 Open <http://localhost:8081> and use:

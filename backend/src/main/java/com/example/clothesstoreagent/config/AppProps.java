@@ -18,6 +18,7 @@ public class AppProps {
     private int schemaSamplesPerColumn = 5;
 
     private String nlqProvider = "rule";
+    private String nlqMode = "single-call"; // "single-call" or "judge-generator"
 
     private String azureOpenaiEndpoint;
     private String azureOpenaiApiKey;
@@ -47,6 +48,9 @@ public class AppProps {
 
     public String getNlqProvider() { return nlqProvider; }
     public void setNlqProvider(String nlqProvider) { this.nlqProvider = nlqProvider; }
+
+    public String getNlqMode() { return nlqMode; }
+    public void setNlqMode(String nlqMode) { this.nlqMode = nlqMode; }
 
     public String getAzureOpenaiEndpoint() { return azureOpenaiEndpoint; }
     public void setAzureOpenaiEndpoint(String v) { this.azureOpenaiEndpoint = v; }
