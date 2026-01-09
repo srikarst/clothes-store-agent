@@ -44,3 +44,8 @@ app:
   azureOpenaiDeployment: ${APP_AZURE_DEPLOYMENT:}
   azureOpenaiApiVersion: ${APP_AZURE_API_VERSION:}
   azureOpenaiApiKey: ${APP_AZURE_API_KEY:}
+
+  # Conversation history settings
+  historyEnabled: ${APP_HISTORY_ENABLED:true}
+  historyMaxTurns: ${APP_HISTORY_MAX_TURNS:6}
+  historyTtlMinutes: ${APP_HISTORY_TTL_MINUTES:1440}

@@ -1,6 +1,7 @@
 package com.example.clothesstoreagent.api;
 
 import com.example.clothesstoreagent.config.AppProps;
+import com.example.clothesstoreagent.nlq.HistoryStore;
 import com.example.clothesstoreagent.nlq.NlqProvider;
 import com.example.clothesstoreagent.service.QueryService;
 import org.junit.jupiter.api.Test;
@@ -24,17 +25,20 @@ class NlqControllerTest {
     void clarifyDecisionDoesNotExecuteSql() {
         QueryService query = mock(QueryService.class);
         AppProps props = mock(AppProps.class);
+        HistoryStore historyStore = mock(HistoryStore.class);
+        when(props.isHistoryEnabled()).thenReturn(false);
+        
         NlqProvider provider = prompt -> NlqProvider.Decision.clarify(
                 "intent_clarify",
                 "Could you share the date range?",
                 List.of("date_range")
         );
 
-        NlqController controller = new NlqController(provider, query, props);
+        NlqController controller = new NlqController(provider, query, props, historyStore);
         NlqController.NlqRequest req = new NlqController.NlqRequest();
         req.prompt = "sales for hoodies";
 
-    ResponseEntity<Map<String, Object>> resp = controller.handle(req);
+    ResponseEntity<Map<String, Object>> resp = controller.handle(req, null, null);
 
     assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
     Map<String, Object> body = resp.getBody();
@@ -51,6 +55,8 @@ class NlqControllerTest {
     void executeDecisionRunsQueryWhenAllowed() {
         QueryService query = mock(QueryService.class);
         AppProps props = mock(AppProps.class);
+        HistoryStore historyStore = mock(HistoryStore.class);
+        when(props.isHistoryEnabled()).thenReturn(false);
         when(query.execute(eq("SELECT 1"), eq(Map.of("limit", 5)), any(), any()))
                 .thenReturn(Map.of("rowCount", 0));
 
@@ -60,12 +66,12 @@ class NlqControllerTest {
                 Map.of("limit", 5)
         );
 
-        NlqController controller = new NlqController(provider, query, props);
+        NlqController controller = new NlqController(provider, query, props, historyStore);
         NlqController.NlqRequest req = new NlqController.NlqRequest();
         req.prompt = "top 5 products by revenue last month";
         req.execute = true;
 
-    ResponseEntity<Map<String, Object>> resp = controller.handle(req);
+    ResponseEntity<Map<String, Object>> resp = controller.handle(req, null, null);
 
     assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
     Map<String, Object> body = resp.getBody();
@@ -82,16 +88,19 @@ class NlqControllerTest {
     void rejectDecisionReturnsBadRequest() {
         QueryService query = mock(QueryService.class);
         AppProps props = mock(AppProps.class);
+        HistoryStore historyStore = mock(HistoryStore.class);
+        when(props.isHistoryEnabled()).thenReturn(false);
+        
         NlqProvider provider = prompt -> NlqProvider.Decision.reject(
                 "intent_reject",
                 "I can't perform destructive operations."
         );
 
-        NlqController controller = new NlqController(provider, query, props);
+        NlqController controller = new NlqController(provider, query, props, historyStore);
         NlqController.NlqRequest req = new NlqController.NlqRequest();
         req.prompt = "drop the customers table";
 
-    ResponseEntity<Map<String, Object>> resp = controller.handle(req);
+    ResponseEntity<Map<String, Object>> resp = controller.handle(req, null, null);
 
     assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     Map<String, Object> body = resp.getBody();

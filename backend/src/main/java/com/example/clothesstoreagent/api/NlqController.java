@@ -1,6 +1,8 @@
 package com.example.clothesstoreagent.api;
 
 import com.example.clothesstoreagent.config.AppProps;
+import com.example.clothesstoreagent.nlq.ChatTurn;
+import com.example.clothesstoreagent.nlq.HistoryStore;
 import com.example.clothesstoreagent.nlq.JudgeGeneratorAzureProvider;
 import com.example.clothesstoreagent.nlq.NlqProvider;
 import com.example.clothesstoreagent.nlq.judge.RepairResponse;
@@ -14,6 +16,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -25,11 +28,14 @@ public class NlqController {
 
     private final NlqProvider nlq;
     private final QueryService query;
+    private final AppProps props;
+    private final HistoryStore historyStore;
 
-    public NlqController(NlqProvider nlq, QueryService query, AppProps props) {
+    public NlqController(NlqProvider nlq, QueryService query, AppProps props, HistoryStore historyStore) {
         this.nlq = nlq;
         this.query = query;
-        // AppProps parameter kept for backward compatibility with tests
+        this.props = props;
+        this.historyStore = historyStore;
     }
 
     public static class NlqRequest {
@@ -40,15 +46,34 @@ public class NlqController {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> handle(@RequestBody NlqRequest req) {
+    public ResponseEntity<Map<String, Object>> handle(
+            @RequestBody NlqRequest req,
+            @RequestHeader(value = "X-Conversation-Id", required = false) String conversationIdHeader,
+            @RequestParam(value = "conversationId", required = false) String conversationIdParam) {
         try {
             String preview = req.prompt != null && req.prompt.length() > 160
                     ? req.prompt.substring(0, 160) + "…"
                     : req.prompt;
             boolean doRunFlag = req.execute == null || Boolean.TRUE.equals(req.execute);
-            log.info("NLQ reques execute={} prompt='{}'", doRunFlag, preview);
+            
+            // Determine conversation ID (header takes precedence over query param)
+            String conversationId = conversationIdHeader != null ? conversationIdHeader : conversationIdParam;
+            boolean useHistory = props.isHistoryEnabled() && conversationId != null && !conversationId.isBlank();
+            
+            log.info("NLQ request execute={} prompt='{}' conversationId='{}' historyEnabled={}",
+                    doRunFlag, preview, conversationId, useHistory);
 
-            NlqProvider.Decision decision = nlq.compile(req.prompt);
+            // Load conversation history if enabled
+            List<ChatTurn> history = List.of();
+            if (useHistory) {
+                history = historyStore.getHistory(conversationId, props.getHistoryMaxTurns());
+                log.debug("Loaded {} turns from conversation '{}'", history.size(), conversationId);
+            }
+            
+            // Compile with or without history
+            NlqProvider.Decision decision = useHistory ? 
+                nlq.compileWithHistory(req.prompt, history) : 
+                nlq.compile(req.prompt);
 
             Map<String, Object> resp = new LinkedHashMap<>();
             if (decision.intent != null) {
@@ -66,6 +91,15 @@ public class NlqController {
                 case CLARIFY -> {
                     resp.put("clarify", true);
                     resp.put("ran", false);
+                    
+                    // Save to history
+                    if (useHistory) {
+                        historyStore.addTurn(conversationId, ChatTurn.user(req.prompt));
+                        String assistantMsg = "QUESTION: " + decision.question;
+                        historyStore.addTurn(conversationId, ChatTurn.assistant(assistantMsg));
+                        log.debug("Saved clarify turns to conversation '{}'", conversationId);
+                    }
+                    
                     log.info("NLQ clarify intent={} question='{}'", decision.intent, decision.question);
                     return ResponseEntity.ok(resp);
                 }
@@ -96,10 +130,22 @@ public class NlqController {
                         resp.put("result", result);
                         
                         // Check if repair was attempted
+                        String finalSql = decision.sql;
                         if (result.containsKey("repaired") && Boolean.TRUE.equals(result.get("repaired"))) {
                             resp.put("repaired", true);
                             resp.put("originalSql", decision.sql);
                             resp.put("sql", result.get("repairedSql"));
+                            finalSql = (String) result.get("repairedSql");
+                        }
+                        
+                        // Save to history
+                        if (useHistory) {
+                            historyStore.addTurn(conversationId, ChatTurn.user(req.prompt));
+                            String sqlToSave = finalSql.length() > 2000 ? 
+                                finalSql.substring(0, 2000) + "..." : finalSql;
+                            String assistantMsg = "SQL:\n" + sqlToSave;
+                            historyStore.addTurn(conversationId, ChatTurn.assistant(assistantMsg));
+                            log.debug("Saved execute turns to conversation '{}'", conversationId);
                         }
                         
                         log.info("NLQ execution complete intent={} rows={} repaired={}",
@@ -127,6 +173,17 @@ public class NlqController {
                     reject.put("message", message);
                     reject.put("error", "NLQ_REJECTED");
                     reject.put("ran", false);
+                    
+                    // Save to history
+                    if (useHistory) {
+                        historyStore.addTurn(conversationId, ChatTurn.user(req.prompt));
+                        String reasons = !decision.missing.isEmpty() ? 
+                            String.join(", ", decision.missing) : "out of scope";
+                        String assistantMsg = "REJECT: " + reasons;
+                        historyStore.addTurn(conversationId, ChatTurn.assistant(assistantMsg));
+                        log.debug("Saved reject turns to conversation '{}'", conversationId);
+                    }
+                    
                     log.info("NLQ reject intent={} message='{}'", decision.intent, message);
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(reject);
                 }
@@ -209,5 +266,24 @@ public class NlqController {
         }
         
         return result;
+    }
+
+    @DeleteMapping("/conversation/{id}")
+    public ResponseEntity<Map<String, Object>> clearConversation(@PathVariable String id) {
+        if (id == null || id.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "INVALID_ID",
+                "message", "Conversation ID cannot be empty"
+            ));
+        }
+        
+        historyStore.clearConversation(id);
+        log.info("Cleared conversation '{}'", id);
+        
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "conversationId", id,
+            "message", "Conversation history cleared"
+        ));
     }
 }

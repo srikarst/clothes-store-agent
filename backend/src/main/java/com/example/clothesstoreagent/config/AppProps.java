@@ -28,6 +28,10 @@ public class AppProps {
     private String awsRegion;
     private String bedrockModelId;
 
+    private boolean historyEnabled = true;
+    private int historyMaxTurns = 6;
+    private int historyTtlMinutes = 1440;
+
     public boolean isReadOnly() { return readOnly; }
     public void setReadOnly(boolean readOnly) { this.readOnly = readOnly; }
 
@@ -69,4 +73,13 @@ public class AppProps {
 
     public String getBedrockModelId() { return bedrockModelId; }
     public void setBedrockModelId(String bedrockModelId) { this.bedrockModelId = bedrockModelId; }
+
+    public boolean isHistoryEnabled() { return historyEnabled; }
+    public void setHistoryEnabled(boolean historyEnabled) { this.historyEnabled = historyEnabled; }
+
+    public int getHistoryMaxTurns() { return historyMaxTurns; }
+    public void setHistoryMaxTurns(int historyMaxTurns) { this.historyMaxTurns = historyMaxTurns; }
+
+    public int getHistoryTtlMinutes() { return historyTtlMinutes; }
+    public void setHistoryTtlMinutes(int historyTtlMinutes) { this.historyTtlMinutes = historyTtlMinutes; }
 }

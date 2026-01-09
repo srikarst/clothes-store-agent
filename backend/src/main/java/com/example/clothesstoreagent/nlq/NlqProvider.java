@@ -63,6 +63,15 @@ public interface NlqProvider {
 
     Decision compile(String prompt);
 
+    /**
+     * Compile a prompt with conversation history.
+     * Default implementation ignores history and calls compile(prompt).
+     * Providers that support history can override this method.
+     */
+    default Decision compileWithHistory(String prompt, List<ChatTurn> history) {
+        return compile(prompt);
+    }
+
     default List<String> suggestions() {
         return List.of(
             "top 5 products by revenue last month",

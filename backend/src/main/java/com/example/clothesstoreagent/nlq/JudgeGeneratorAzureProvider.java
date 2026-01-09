@@ -39,10 +39,15 @@ public class JudgeGeneratorAzureProvider implements NlqProvider {
 
     @Override
     public Decision compile(String prompt) {
+        return compileWithHistory(prompt, List.of());
+    }
+
+    @Override
+    public Decision compileWithHistory(String prompt, List<ChatTurn> history) {
         requireConfigured();
 
         // Step 1: Judge
-        JudgeResponse judgeResp = callJudge(prompt);
+        JudgeResponse judgeResp = callJudgeWithHistory(prompt, history);
         
         if (judgeResp.getDecision() == null || judgeResp.getDecision().isBlank()) {
             throw new IllegalStateException("Judge returned empty decision");
@@ -71,7 +76,7 @@ public class JudgeGeneratorAzureProvider implements NlqProvider {
             case "proceed" -> {
                 log.info("Judge: proceed - calling Generator");
                 // Step 2: Generator
-                GeneratorResponse genResp = callGenerator(prompt);
+                GeneratorResponse genResp = callGeneratorWithHistory(prompt, history);
                 
                 if (genResp.getSql() == null || genResp.getSql().isBlank()) {
                     throw new IllegalStateException("Generator returned empty SQL");
@@ -90,10 +95,13 @@ public class JudgeGeneratorAzureProvider implements NlqProvider {
     }
 
     /**
-     * Step 1: Judge decides proceed/clarify/reject
+     * Step 1: Judge with history support
      */
-    private JudgeResponse callJudge(String prompt) {
-        Map<String, Object> ctx = schema.getSchema();
+    private JudgeResponse callJudgeWithHistory(String prompt, List<ChatTurn> history) {
+        boolean useCompact = !history.isEmpty();
+        String schemaContent = useCompact ? 
+            schema.compactDigest(6) : 
+            "Schema JSON:\n" + safeJson(schema.getSchema());
         
         String system = """
                 You are a Judge agent for a Text-to-SQL system (Microsoft SQL Server).
@@ -120,13 +128,21 @@ public class JudgeGeneratorAzureProvider implements NlqProvider {
                 5. For revenue queries, always require completed orders (o.status = 'completed').
                 """;
         
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", system));
+        
+        // Add conversation history
+        for (ChatTurn turn : history) {
+            String role = turn.role() == ChatTurn.Role.USER ? "user" : "assistant";
+            messages.add(Map.of("role", role, "content", turn.content()));
+        }
+        
+        // Add current user request with schema
+        messages.add(Map.of("role", "user", "content", 
+            schemaContent + "\n\nUser request:\n" + prompt + "\n\nRespond with JSON only."));
+        
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("messages", List.of(
-                Map.of("role", "system", "content", system),
-                Map.of("role", "user", "content", 
-                    "Schema JSON:\n" + safeJson(ctx) + "\n\nUser request:\n" + prompt
-                    + "\n\nRespond with JSON only.")
-        ));
+        body.put("messages", messages);
         body.put("temperature", 0);
         body.put("response_format", Map.of("type", "json_object"));
         
@@ -142,10 +158,13 @@ public class JudgeGeneratorAzureProvider implements NlqProvider {
     }
 
     /**
-     * Step 2: Generator produces SQL
+     * Step 2: Generator with history support
      */
-    private GeneratorResponse callGenerator(String prompt) {
-        Map<String, Object> ctx = schema.getSchema();
+    private GeneratorResponse callGeneratorWithHistory(String prompt, List<ChatTurn> history) {
+        boolean useCompact = !history.isEmpty();
+        String schemaContent = useCompact ? 
+            schema.compactDigest(6) : 
+            "Schema JSON:\n" + safeJson(schema.getSchema());
         
         String system = """
                 You are a SQL Generator agent for Microsoft SQL Server.
@@ -170,23 +189,33 @@ public class JudgeGeneratorAzureProvider implements NlqProvider {
                 - Never use INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, REVOKE.
                 """;
         
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", system));
+        
+        // Add example
+        messages.add(Map.of("role", "user", "content",
+            "Example: top 3 products by revenue last month"));
+        messages.add(Map.of("role", "assistant", "content",
+            "{\"sql\":\"SELECT TOP 3 p.name, SUM(oi.qty * oi.unit_price * (1 - oi.discount)) AS revenue " +
+            "FROM dbo.orders o JOIN dbo.order_items oi ON oi.order_id = o.id " +
+            "JOIN dbo.products p ON p.id = oi.product_id " +
+            "WHERE o.status = 'completed' " +
+            "AND o.created_at >= DATEADD(DAY,1,EOMONTH(SYSUTCDATETIME(),-2)) " +
+            "AND o.created_at <  DATEADD(DAY,1,EOMONTH(SYSUTCDATETIME(),-1)) " +
+            "GROUP BY p.name ORDER BY revenue DESC\",\"params\":{}}"));
+        
+        // Add conversation history
+        for (ChatTurn turn : history) {
+            String role = turn.role() == ChatTurn.Role.USER ? "user" : "assistant";
+            messages.add(Map.of("role", role, "content", turn.content()));
+        }
+        
+        // Add current user request with schema
+        messages.add(Map.of("role", "user", "content",
+            schemaContent + "\n\nUser request:\n" + prompt + "\n\nRespond with JSON only."));
+        
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("messages", List.of(
-                Map.of("role", "system", "content", system),
-                Map.of("role", "user", "content",
-                    "Example: top 3 products by revenue last month"),
-                Map.of("role", "assistant", "content",
-                    "{\"sql\":\"SELECT TOP 3 p.name, SUM(oi.qty * oi.unit_price * (1 - oi.discount)) AS revenue " +
-                    "FROM dbo.orders o JOIN dbo.order_items oi ON oi.order_id = o.id " +
-                    "JOIN dbo.products p ON p.id = oi.product_id " +
-                    "WHERE o.status = 'completed' " +
-                    "AND o.created_at >= DATEADD(DAY,1,EOMONTH(SYSUTCDATETIME(),-2)) " +
-                    "AND o.created_at <  DATEADD(DAY,1,EOMONTH(SYSUTCDATETIME(),-1)) " +
-                    "GROUP BY p.name ORDER BY revenue DESC\",\"params\":{}}"),
-                Map.of("role", "user", "content",
-                    "Schema JSON:\n" + safeJson(ctx) + "\n\nUser request:\n" + prompt
-                    + "\n\nRespond with JSON only.")
-        ));
+        body.put("messages", messages);
         body.put("temperature", 0);
         body.put("response_format", Map.of("type", "json_object"));
         

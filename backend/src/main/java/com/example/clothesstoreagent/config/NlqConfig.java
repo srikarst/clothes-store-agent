@@ -39,4 +39,12 @@ public class NlqConfig {
                 return new RuleBasedProvider();
         }
     }
+
+    @Bean
+    public HistoryStore historyStore(AppProps props) {
+        int ttlMinutes = props.getHistoryTtlMinutes();
+        int maxTurns = props.getHistoryMaxTurns();
+        log.info("Initializing InMemoryHistoryStore: ttlMinutes={}, maxTurns={}", ttlMinutes, maxTurns);
+        return new InMemoryHistoryStore(ttlMinutes, maxTurns);
+    }
 }

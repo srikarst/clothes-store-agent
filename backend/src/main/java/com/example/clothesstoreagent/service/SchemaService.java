@@ -116,6 +116,51 @@ public class SchemaService {
         return out;
     }
 
+    /**
+     * Returns a compact schema digest with limited sample values per column.
+     * Useful for conversation history to reduce token usage.
+     * @param samplesPerColumn maximum sample values per column
+     */
+    public String compactDigest(int samplesPerColumn) {
+        Map<String, Object> schema = getSchema();
+        
+        StringBuilder sb = new StringBuilder();
+        sb.append("Schema:\n");
+        
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> tables = (List<Map<String, Object>>) schema.get("tables");
+        @SuppressWarnings("unchecked")
+        Map<String, List<Map<String, Object>>> columnsByTable = 
+            (Map<String, List<Map<String, Object>>>) schema.get("columnsByTable");
+        @SuppressWarnings("unchecked")
+        Map<String, List<String>> samplesByColumn = 
+            (Map<String, List<String>>) schema.get("samplesByColumn");
+        
+        for (Map<String, Object> table : tables) {
+            String tableKey = table.get("TABLE_SCHEMA") + "." + table.get("TABLE_NAME");
+            sb.append("- ").append(tableKey).append(":\n");
+            
+            List<Map<String, Object>> columns = columnsByTable.getOrDefault(tableKey, List.of());
+            for (Map<String, Object> col : columns) {
+                String colName = (String) col.get("COLUMN_NAME");
+                String dataType = (String) col.get("DATA_TYPE");
+                sb.append("  - ").append(colName).append(" (").append(dataType).append(")");
+                
+                String sampleKey = tableKey + "." + colName;
+                List<String> samples = samplesByColumn.get(sampleKey);
+                if (samples != null && !samples.isEmpty()) {
+                    List<String> limited = samples.stream()
+                        .limit(samplesPerColumn)
+                        .collect(Collectors.toList());
+                    sb.append(" samples: ").append(limited);
+                }
+                sb.append("\n");
+            }
+        }
+        
+        return sb.toString();
+    }
+
     private static String quote(String ident) {
         return "[" + ident.replace("]", "]]" ) + "]";
     }
