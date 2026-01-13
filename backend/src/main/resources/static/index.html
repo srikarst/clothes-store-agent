@@ -189,7 +189,7 @@
     <!-- RUN SELECT -->
     <div class="card">
       <h2>Run SELECT</h2>
-      <textarea id="sql" spellcheck="false">SELECT TOP 5 name FROM sys.tables</textarea>
+      <textarea id="sql" spellcheck="false">SELECT TOP 5 TABLE_NAME AS name FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' ORDER BY TABLE_SCHEMA, TABLE_NAME</textarea>
       <div class="row" style="margin-top:8px;">
         <label class="mono" style="flex:1;">Params (JSON):
           <input id="params" type="text" placeholder='{"nameLike":"%"}' />

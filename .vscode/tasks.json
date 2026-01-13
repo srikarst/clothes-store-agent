@@ -111,19 +111,89 @@
                 }
             }
         },
+        {
+            "label": "gradle:bootstrap-wrapper (Windows)",
+            "type": "shell",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${workspaceFolder}\\backend\\scripts\\bootstrap-gradle-wrapper.ps1\"",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
         /* --- Self-healing wrapper + run (Windows) --- */
         {
             "label": "app:run (Windows, wrapper, 8081)",
             "type": "shell",
-            "command": "cmd /c gradlew.bat bootRun --args=\"--server.port=8081\"",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "gradle:bootstrap-wrapper (Windows)"
+            ],
+            "command": ".\\gradlew.bat bootRun",
             "options": {
-                "cwd": "${workspaceFolder}/backend"
+                "cwd": "${workspaceFolder}/backend",
+                "env": {
+                    "JAVA_HOME": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.17.10-hotspot",
+                    "PATH": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.17.10-hotspot\\bin;${env:Path}",
+                    "SERVER_PORT": "8081"
+                }
+            }
+        },
+        {
+            "label": "app:run (Windows, wrapper, H2, 8081)",
+            "type": "shell",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "gradle:bootstrap-wrapper (Windows)"
+            ],
+            "command": ".\\gradlew.bat bootRun",
+            "options": {
+                "cwd": "${workspaceFolder}/backend",
+                "env": {
+                    "JAVA_HOME": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.17.10-hotspot",
+                    "PATH": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.17.10-hotspot\\bin;${env:Path}",
+                    "SERVER_PORT": "8081",
+                    "SPRING_PROFILES_ACTIVE": "h2"
+                }
+            }
+        },
+        {
+            "label": "app:run (Windows, wrapper, SQLServer, 8081)",
+            "type": "shell",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "gradle:bootstrap-wrapper (Windows)"
+            ],
+            "command": ".\\gradlew.bat bootRun",
+            "options": {
+                "cwd": "${workspaceFolder}/backend",
+                "env": {
+                    "JAVA_HOME": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.17.10-hotspot",
+                    "PATH": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.17.10-hotspot\\bin;${env:Path}",
+                    "SERVER_PORT": "8081",
+                    "SPRING_PROFILES_ACTIVE": "sqlserver"
+                }
             }
         },
         {
             "label": "open:UI (Windows, 8081)",
             "type": "shell",
             "command": "start http://localhost:8081"
+        },
+        {
+            "label": "api:smoke (H2 data, 8081)",
+            "type": "shell",
+            "command": "Invoke-RestMethod -Method Get -Uri http://localhost:8081/api/health | ConvertTo-Json; Invoke-RestMethod -Method Get -Uri http://localhost:8081/api/schema | ConvertTo-Json -Depth 6; $body=@{ sql='SELECT TOP 10 id,name,email,created_at FROM dbo.customers ORDER BY id'; params=@{} } | ConvertTo-Json; Invoke-RestMethod -Method Post -Uri http://localhost:8081/api/query -ContentType 'application/json' -Body $body | ConvertTo-Json -Depth 6",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "shell": {
+                    "executable": "powershell.exe",
+                    "args": [
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-Command"
+                    ]
+                }
+            }
         },
         /* One-click flow */
         {
@@ -135,6 +205,13 @@
                 "db:create-schema",
                 "db:populate",
                 "app:run (Windows, wrapper, 8081)"
+            ]
+        },
+        {
+            "label": "Run (Windows): H2 → App (wrapper)",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "app:run (Windows, wrapper, H2, 8081)"
             ]
         }
     ]

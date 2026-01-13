@@ -6,6 +6,7 @@ backend/.env.*
 
 # Gradle build outputs
 .gradle/
+backend/.gradle-local/
 **/build/
 **/out/
 
