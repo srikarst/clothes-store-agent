@@ -16,7 +16,8 @@ A minimal HTML page at `/` lets you test without a separate frontend.
 ## Tech
 
 - Java 17, Spring Boot 3.3 (Gradle **wrapper** included — no global Gradle required)
-- SQL Server (Docker) + Microsoft JDBC Driver
+- H2 (in-memory) for local dev (default)
+- SQL Server (Docker) optional + Microsoft JDBC Driver
 - Minimal static UI, plus VS Code tasks
 
 ---
@@ -25,7 +26,25 @@ A minimal HTML page at `/` lets you test without a separate frontend.
 
 ### 0) Prereqs
 - JDK 17  
-- Docker Desktop (for SQL Server)
+
+### Option A: Run with H2 (no Docker) — recommended
+
+The backend defaults to the `h2` profile, auto-creates schema, and seeds demo data on startup.
+
+```powershell
+cd backend
+./gradlew.bat bootRun
+```
+
+Open: <http://localhost:8080>
+
+VS Code task: `Run (Windows): H2 → App (wrapper)`
+
+H2 console (optional): <http://localhost:8080/h2-console>
+
+### Option B: Run with SQL Server (Docker)
+
+Prereq: Docker Desktop (for SQL Server)
 
 ### 1) Start SQL Server (Docker)
 
@@ -58,7 +77,7 @@ cp .env.example .env   # use copy-item on PowerShell
 # edit .env and set the values below
 ```
 
-`.env` keys (adjust if you change ports or enable Azure):
+`.env` keys (only needed for SQL Server / Azure; H2 does not require these):
 
 ```
 DB_URL=jdbc:sqlserver://localhost:1433;databaseName=clothes_store_agent;encrypt=true;trustServerCertificate=true
@@ -88,7 +107,9 @@ app:
 ### 3) Run (Gradle **wrapper**)
 cd backend
 
-# Windows
+# Windows (SQL Server profile)
+# PowerShell-friendly (avoids quoting issues with Gradle --args)
+$env:SPRING_PROFILES_ACTIVE='sqlserver'
 .\gradlew.bat bootRun
 
 # macOS/Linux

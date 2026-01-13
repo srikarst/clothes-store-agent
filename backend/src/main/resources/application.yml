@@ -4,11 +4,8 @@ server:
 spring:
   config:
     import: optional:file:.env[.properties]
-  datasource:
-    url: ${DB_URL:}
-    username: ${DB_USER:}
-    password: ${DB_PASSWORD:}
-    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+  profiles:
+    default: h2
   jackson:
     serialization:
       INDENT_OUTPUT: true

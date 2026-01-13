@@ -20,6 +20,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
+    runtimeOnly 'com.h2database:h2'
+
     // Microsoft SQL Server JDBC driver (pick ONE of these)
     // Preferred (latest):
     runtimeOnly 'com.microsoft.sqlserver:mssql-jdbc:13.2.0.jre11'

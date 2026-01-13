@@ -4,6 +4,10 @@ import com.example.clothesstoreagent.config.AppProps;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -12,10 +16,12 @@ public class SchemaService {
 
     private final JdbcTemplate jdbc;
     private final AppProps props;
+    private final DataSource dataSource;
 
     public SchemaService(JdbcTemplate jdbc, AppProps props) {
         this.jdbc = jdbc;
         this.props = props;
+        this.dataSource = Objects.requireNonNull(jdbc.getDataSource(), "DataSource is required");
     }
 
     public Map<String, Object> getSchema() {
@@ -58,28 +64,7 @@ public class SchemaService {
         }
         out.put("columnsByTable", columnsByTable);
 
-        List<Map<String, Object>> fks = jdbc.queryForList("""
-            SELECT
-              fk.name AS constraint_name,
-              schP.name AS from_schema, tP.name AS from_table, cP.name AS from_column,
-              schR.name AS to_schema,   tR.name AS to_table,   cR.name AS to_column
-            FROM sys.foreign_keys fk
-            JOIN sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
-            JOIN sys.tables tP ON fkc.parent_object_id = tP.object_id
-            JOIN sys.schemas schP ON tP.schema_id = schP.schema_id
-            JOIN sys.columns cP ON cP.object_id = tP.object_id AND cP.column_id = fkc.parent_column_id
-            JOIN sys.tables tR ON fkc.referenced_object_id = tR.object_id
-            JOIN sys.schemas schR ON tR.schema_id = schR.schema_id
-            JOIN sys.columns cR ON cR.object_id = tR.object_id AND cR.column_id = fkc.referenced_column_id
-            ORDER BY from_schema, from_table, constraint_name, fkc.constraint_column_id
-        """);
-
-        if (!allow.isEmpty()) {
-            fks = fks.stream().filter(m ->
-                allow.contains((m.get("from_schema")+"."+m.get("from_table")).toString().toLowerCase()) &&
-                allow.contains((m.get("to_schema")+"."+m.get("to_table")).toString().toLowerCase())
-            ).collect(Collectors.toList());
-        }
+        List<Map<String, Object>> fks = readForeignKeys(columnsByTable.keySet(), allow);
         out.put("fks", fks);
 
         int perCol = Math.max(0, props.getSchemaSamplesPerColumn());
@@ -97,10 +82,10 @@ public class SchemaService {
                     if (dataType.contains("varbinary") || dataType.contains("image") || dataType.contains("xml"))
                         continue;
 
-                    String sql = "SELECT TOP " + perCol + " DISTINCT " +
-                            "CAST(" + quote(schema) + "." + quote(table) + "." + quote(col) + " AS NVARCHAR(200)) AS v " +
-                            "FROM " + quote(schema) + "." + quote(table) + " " +
-                            "WHERE " + quote(col) + " IS NOT NULL";
+                        String sql = "SELECT TOP " + perCol + " DISTINCT " +
+                            "CAST(" + q(schema) + "." + q(table) + "." + q(col) + " AS VARCHAR(200)) AS v " +
+                            "FROM " + q(schema) + "." + q(table) + " " +
+                            "WHERE " + q(col) + " IS NOT NULL";
 
                     try {
                         List<String> vals = jdbc.query(sql, (rs, n) -> rs.getString("v"));
@@ -114,6 +99,59 @@ public class SchemaService {
         out.put("samplesByColumn", samplesByColumn);
 
         return out;
+    }
+
+
+    private List<Map<String, Object>> readForeignKeys(Set<String> schemaDotTables, Set<String> allowLower) {
+        try (Connection conn = dataSource.getConnection()) {
+            DatabaseMetaData meta = conn.getMetaData();
+            List<Map<String, Object>> fks = new ArrayList<>();
+
+            for (String tbl : schemaDotTables) {
+                String[] parts = tbl.split("\\.", 2);
+                if (parts.length != 2) continue;
+                String schema = parts[0];
+                String table = parts[1];
+
+                try (ResultSet rs = meta.getImportedKeys(conn.getCatalog(), schema, table)) {
+                    while (rs.next()) {
+                        String fromSchema = rs.getString("FKTABLE_SCHEM");
+                        String fromTable = rs.getString("FKTABLE_NAME");
+                        String fromColumn = rs.getString("FKCOLUMN_NAME");
+                        String toSchema = rs.getString("PKTABLE_SCHEM");
+                        String toTable = rs.getString("PKTABLE_NAME");
+                        String toColumn = rs.getString("PKCOLUMN_NAME");
+                        String fkName = rs.getString("FK_NAME");
+
+                        if (!allowLower.isEmpty()) {
+                            String fromKey = (fromSchema + "." + fromTable).toLowerCase(Locale.ROOT);
+                            String toKey = (toSchema + "." + toTable).toLowerCase(Locale.ROOT);
+                            if (!allowLower.contains(fromKey) || !allowLower.contains(toKey)) continue;
+                        }
+
+                        fks.add(new LinkedHashMap<>(Map.of(
+                                "constraint_name", fkName,
+                                "from_schema", fromSchema,
+                                "from_table", fromTable,
+                                "from_column", fromColumn,
+                                "to_schema", toSchema,
+                                "to_table", toTable,
+                                "to_column", toColumn
+                        )));
+                    }
+                }
+            }
+
+            fks.sort(Comparator
+                    .comparing((Map<String, Object> m) -> String.valueOf(m.get("from_schema")))
+                    .thenComparing(m -> String.valueOf(m.get("from_table")))
+                    .thenComparing(m -> String.valueOf(m.get("constraint_name")))
+                    .thenComparing(m -> String.valueOf(m.get("from_column"))));
+
+            return fks;
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 
     /**
@@ -160,8 +198,16 @@ public class SchemaService {
         
         return sb.toString();
     }
+    
+    private String q(String ident) {
+        String dbProduct = "";
+        try (Connection conn = dataSource.getConnection()) {
+            dbProduct = String.valueOf(conn.getMetaData().getDatabaseProductName());
+        } catch (Exception ignore) { }
 
-    private static String quote(String ident) {
-        return "[" + ident.replace("]", "]]" ) + "]";
+        if (dbProduct.toLowerCase(Locale.ROOT).contains("microsoft sql server")) {
+            return "[" + ident.replace("]", "]]" ) + "]";
+        }
+        return "\"" + ident.replace("\"", "\"\"") + "\"";
     }
 }
