@@ -179,6 +179,45 @@
             "command": "start http://localhost:8081"
         },
         {
+            "label": "ui:install (Windows)",
+            "type": "shell",
+            "command": "npm install",
+            "options": {
+                "cwd": "${workspaceFolder}/frontend",
+                "shell": {
+                    "executable": "powershell.exe",
+                    "args": [
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-Command"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "ui:run (Windows, 3000)",
+            "type": "shell",
+            "command": "npm start",
+            "options": {
+                "cwd": "${workspaceFolder}/frontend",
+                "shell": {
+                    "executable": "powershell.exe",
+                    "args": [
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-Command"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "open:UI (Windows, 3000)",
+            "type": "shell",
+            "command": "start http://localhost:3000"
+        },
+        {
             "label": "api:smoke (H2 data, 8081)",
             "type": "shell",
             "command": "Invoke-RestMethod -Method Get -Uri http://localhost:8081/api/health | ConvertTo-Json; Invoke-RestMethod -Method Get -Uri http://localhost:8081/api/schema | ConvertTo-Json -Depth 6; $body=@{ sql='SELECT TOP 10 id,name,email,created_at FROM dbo.customers ORDER BY id'; params=@{} } | ConvertTo-Json; Invoke-RestMethod -Method Post -Uri http://localhost:8081/api/query -ContentType 'application/json' -Body $body | ConvertTo-Json -Depth 6",
