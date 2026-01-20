@@ -213,6 +213,37 @@
             }
         },
         {
+            "label": "ui:test (Windows)",
+            "type": "shell",
+            "command": "set CI=true & npm test -- --watchAll=false",
+            "options": {
+                "cwd": "${workspaceFolder}/frontend",
+                "shell": {
+                    "executable": "cmd.exe",
+                    "args": [
+                        "/d",
+                        "/c"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "ui:test:watch (Windows)",
+            "type": "shell",
+            "command": "npm test",
+            "isBackground": true,
+            "options": {
+                "cwd": "${workspaceFolder}/frontend",
+                "shell": {
+                    "executable": "cmd.exe",
+                    "args": [
+                        "/d",
+                        "/c"
+                    ]
+                }
+            }
+        },
+        {
             "label": "open:UI (Windows, 3000)",
             "type": "shell",
             "command": "start http://localhost:3000"
