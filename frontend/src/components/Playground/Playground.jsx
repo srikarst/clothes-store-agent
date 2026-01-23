@@ -1,28 +1,39 @@
-import React, { lazy, Suspense, useCallback, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import Child1 from './Child1';
+import { SAMPLE_PEOPLE } from './samplePeople';
 const Child2 = lazy(() => import('./Child2'));
 
 const Playground = () => {
-    let [arr1, setArr1] = useState([{
-        name: "Srikar",
-        age: "1"
-    }, {
-        name: "Charan",
-        age: "2"
-    }]);
+    const [arr1, setArr1] = useState([]);
+    const fetchData = useCallback(async () => {
+        try {
+            const res = await fetch('/api/people');
+            const data = await res.json();
+            setArr1(Array.isArray(data) ? data : (data?.people ?? []));
+        } catch (e) {
+            setArr1([]);
+        }
+    }, [])
     const fn = useCallback(() => { }, [])
+    useEffect(() => {
+        fetchData();
+    }, [fetchData])
     return <>
-        <button onClick={() => setArr1([
-            ...arr1,
-            {
-                name: "Suri",
-                age: "3"
-            }])} >
+        <button onClick={async () => {
+            await fetch('/api/people', {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(SAMPLE_PEOPLE)
+            })
+            fetchData();
+        }} >
             Playground
         </button>
         {arr1.map((item, i) => <Child1 fn={fn} key={i} item={item} />)}
-        {arr1.map((item, i) => <Suspense fallback={"loading"}>
-            <Child2 fn={fn} key={i} item={item} />
+        {arr1.map((item, i) => <Suspense key={i} fallback={"loading"}>
+            <Child2 fn={fn} item={item} />
         </Suspense>)}
     </>
 }
