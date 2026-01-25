@@ -22,7 +22,7 @@ public class DBPlaygroundService implements PlaygroundService {
     @Override
     @Transactional(readOnly = true)
     public List<Person> getPeople() {
-        return personRepository.findAll();
+        return personRepository.findAllWithAddresses();
     }
 
     @Override
