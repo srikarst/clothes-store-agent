@@ -3,6 +3,9 @@ SET SCHEMA dbo;
 
 DROP VIEW IF EXISTS dbo.v_order_revenue;
 
+DROP TABLE IF EXISTS dbo.address;
+DROP TABLE IF EXISTS dbo.person;
+
 DROP TABLE IF EXISTS dbo.order_items;
 DROP TABLE IF EXISTS dbo.orders;
 DROP TABLE IF EXISTS dbo.products;
@@ -57,3 +60,16 @@ GROUP BY o.id;
 CREATE INDEX IF NOT EXISTS IX_orders_customer_created ON dbo.orders(customer_id, created_at);
 CREATE INDEX IF NOT EXISTS IX_order_items_product ON dbo.order_items(product_id);
 CREATE INDEX IF NOT EXISTS IX_products_category ON dbo.products(category);
+
+CREATE TABLE dbo.person (
+  id BIGINT IDENTITY PRIMARY KEY,
+  name VARCHAR(200) NULL,
+  age INT NULL
+);
+
+CREATE TABLE dbo.address (
+  id BIGINT IDENTITY PRIMARY KEY,
+  person_id BIGINT NOT NULL,
+  city VARCHAR(120) NULL,
+  CONSTRAINT FK_address_person FOREIGN KEY (person_id) REFERENCES dbo.person(id)
+);

@@ -1,5 +1,8 @@
 SET SCHEMA dbo;
 
+DELETE FROM dbo.address;
+DELETE FROM dbo.person;
+
 DELETE FROM dbo.order_items;
 DELETE FROM dbo.orders;
 DELETE FROM dbo.products;
@@ -32,6 +35,18 @@ INSERT INTO dbo.order_items (order_id, product_id, qty, unit_price, discount) VA
   (4, 1, 1, 20.00, 0.00),
   (4, 2, 1, 45.00, 0.00);
 
+INSERT INTO dbo.person (id, name, age) VALUES
+  (1, 'Devon', 29),
+  (2, 'Mina',  34);
+
+INSERT INTO dbo.address (id, person_id, city) VALUES
+  (1, 1, 'Seattle'),
+  (2, 1, 'Portland'),
+  (3, 2, 'San Francisco');
+
 ALTER TABLE dbo.customers ALTER COLUMN id RESTART WITH 4;
 ALTER TABLE dbo.products  ALTER COLUMN id RESTART WITH 6;
 ALTER TABLE dbo.orders    ALTER COLUMN id RESTART WITH 5;
+
+ALTER TABLE dbo.person   ALTER COLUMN id RESTART WITH 3;
+ALTER TABLE dbo.address  ALTER COLUMN id RESTART WITH 4;

@@ -6,19 +6,22 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.clothesstoreagent.service.playground.ListPlaygroundService;
+import com.example.clothesstoreagent.entity.Person;
 import com.example.clothesstoreagent.service.playground.PlaygroundService;
-import com.example.clothesstoreagent.service.playground.PlaygroundService.Person;
 
 @RestController
 public class PlaygroundController {
 
-    PlaygroundService playgroundService = new ListPlaygroundService();
+    @Autowired
+    @Qualifier("DB")
+    PlaygroundService playgroundService;
 
     @GetMapping("/api/people")
     private List<Person> get() {
@@ -32,7 +35,7 @@ public class PlaygroundController {
                 ExecutorService executor = Executors.newFixedThreadPool(10);
                 Future<Integer> future = executor.submit(() -> {
                     playgroundService.addPerson(person);
-                    if (true) throw new RuntimeException("some exception");
+                    // if (true) throw new RuntimeException("some exception");
                     return 2;
                 });
                 System.out.println(future.get());
