@@ -1,10 +1,6 @@
 package com.example.clothesstoreagent.api;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -30,18 +26,13 @@ public class PlaygroundController {
 
     @PostMapping("/api/people")
     private void add(@RequestBody List<Person> people) {
+        if (people == null) {
+            return;
+        }
         for (Person person : people) {
             try {
-                ExecutorService executor = Executors.newFixedThreadPool(10);
-                Future<Integer> future = executor.submit(() -> {
-                    playgroundService.addPerson(person);
-                    // if (true) throw new RuntimeException("some exception");
-                    return 2;
-                });
-                System.out.println(future.get());
-            } catch(InterruptedException exception) {
-                System.out.println(exception.getMessage());
-            } catch(ExecutionException exception) {
+                playgroundService.addPerson(person);
+            } catch (RuntimeException exception) {
                 System.out.println(exception.getMessage());
             }
         }
