@@ -20,6 +20,18 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Functional/integration-style tests.
+ *
+ * Uses {@link SpringBootTest} with {@link WebEnvironment#RANDOM_PORT} to start a real embedded server
+ * and {@link TestRestTemplate} to make real HTTP calls.
+ *
+ * Notes:
+ * - {@code @SpringBootTest} loads (almost) the real app context, but tests often override profiles/properties
+ *   (here: H2) and may stub external integrations.
+ * - {@link DirtiesContext} forces a fresh ApplicationContext per test method to avoid cross-test DB state
+ *   coupling (slower, but reduces flakiness when tests mutate shared state).
+ */
 @SpringBootTest(
         webEnvironment = WebEnvironment.RANDOM_PORT,
         properties = {

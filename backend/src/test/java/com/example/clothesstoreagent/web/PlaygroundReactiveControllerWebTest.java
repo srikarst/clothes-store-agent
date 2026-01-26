@@ -29,6 +29,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Controller web tests for reactive return types under Spring MVC.
+ *
+ * Even though the controller returns {@code Mono}/{@code Flux}, under Spring MVC these are handled
+ * asynchronously, so the MockMvc assertions use {@code request().asyncStarted()} + {@code asyncDispatch(...)}.
+ */
 class PlaygroundReactiveControllerWebTest {
 
     private MockMvc mockMvc;

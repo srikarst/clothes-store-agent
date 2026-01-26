@@ -26,6 +26,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Controller web tests using standalone {@link MockMvc}.
+ *
+ * We build MockMvc manually via {@code MockMvcBuilders.standaloneSetup(...)} (no Spring context),
+ * so there's nothing to {@code @Autowired} here.
+ *
+ * Alternative style:
+ * - {@code @WebMvcTest} (or {@code @SpringBootTest + @AutoConfigureMockMvc}) lets Spring create a MockMvc bean,
+ *   and then {@code @Autowired MockMvc} is the typical pattern.
+ */
 class PlaygroundControllerWebTest {
 
     private MockMvc mockMvc;
