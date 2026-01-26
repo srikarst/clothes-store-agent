@@ -9,8 +9,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.clothesstoreagent.playground.aop.PlaygroundAopDemo;
+
 @Service
 @Qualifier("DB")
+@PlaygroundAopDemo
 public class DBPlaygroundService implements PlaygroundService {
 
     PersonRepository personRepository;

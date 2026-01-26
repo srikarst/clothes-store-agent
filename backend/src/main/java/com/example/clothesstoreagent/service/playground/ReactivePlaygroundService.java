@@ -6,12 +6,14 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import com.example.clothesstoreagent.entity.Person;
+import com.example.clothesstoreagent.playground.aop.PlaygroundAopDemo;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @Service
+@PlaygroundAopDemo
 public class ReactivePlaygroundService {
 
     private final PlaygroundService playgroundService;

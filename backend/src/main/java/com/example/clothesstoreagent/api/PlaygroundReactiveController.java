@@ -9,12 +9,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.clothesstoreagent.entity.Person;
+import com.example.clothesstoreagent.playground.aop.PlaygroundAopDemo;
 import com.example.clothesstoreagent.service.playground.ReactivePlaygroundService;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
+@PlaygroundAopDemo
 public class PlaygroundReactiveController {
 
     private final ReactivePlaygroundService reactivePlaygroundService;
