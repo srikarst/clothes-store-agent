@@ -131,8 +131,6 @@
             "options": {
                 "cwd": "${workspaceFolder}/backend",
                 "env": {
-                    "JAVA_HOME": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.17.10-hotspot",
-                    "PATH": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.17.10-hotspot\\bin;${env:Path}",
                     "SERVER_PORT": "8081"
                 }
             }
@@ -144,12 +142,10 @@
             "dependsOn": [
                 "gradle:bootstrap-wrapper (Windows)"
             ],
-            "command": ".\\gradlew.bat bootRun",
+            "command": ".\\gradlew.bat bootRun -Pdebug -PdebugPort=5105",
             "options": {
                 "cwd": "${workspaceFolder}/backend",
                 "env": {
-                    "JAVA_HOME": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.17.10-hotspot",
-                    "PATH": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.17.10-hotspot\\bin;${env:Path}",
                     "SERVER_PORT": "8081",
                     "SPRING_PROFILES_ACTIVE": "h2"
                 }
@@ -166,8 +162,6 @@
             "options": {
                 "cwd": "${workspaceFolder}/backend",
                 "env": {
-                    "JAVA_HOME": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.17.10-hotspot",
-                    "PATH": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.17.10-hotspot\\bin;${env:Path}",
                     "SERVER_PORT": "8081",
                     "SPRING_PROFILES_ACTIVE": "sqlserver"
                 }

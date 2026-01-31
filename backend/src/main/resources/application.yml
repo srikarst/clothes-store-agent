@@ -54,7 +54,7 @@ app:
   schemaSamplesPerColumn: 5
 
   nlqProvider: ${APP_NLQ_PROVIDER:rule}
-  nlqMode: ${APP_NLQ_MODE:single-call} # "single-call" or "judge-generator"
+  nlqMode: ${APP_NLQ_MODE:judge-generator} # "single-call" or "judge-generator"
   azureOpenaiEndpoint: ${APP_AZURE_ENDPOINT:}
   azureOpenaiDeployment: ${APP_AZURE_DEPLOYMENT:}
   azureOpenaiApiVersion: ${APP_AZURE_API_VERSION:}

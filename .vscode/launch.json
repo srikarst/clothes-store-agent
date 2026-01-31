@@ -2,11 +2,11 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Attach to Spring Boot (port 5005)",
+      "name": "Attach to Spring Boot (port 5105)",
       "type": "java",
       "request": "attach",
       "hostName": "localhost",
-      "port": 5005
+      "port": 5105
     }
   ]
 }

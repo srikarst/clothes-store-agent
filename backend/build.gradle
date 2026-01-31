@@ -41,5 +41,8 @@ tasks.withType(Test).configureEach {
 }
 
 bootRun {
-    jvmArgs = ['-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005']
+    if (project.hasProperty('debug')) {
+        def debugPort = project.findProperty('debugPort') ?: '5005'
+        jvmArgs = ["-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:${debugPort}"]
+    }
 }

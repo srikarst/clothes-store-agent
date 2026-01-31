@@ -18,7 +18,7 @@ public class AppProps {
     private int schemaSamplesPerColumn = 5;
 
     private String nlqProvider = "rule";
-    private String nlqMode = "single-call"; // "single-call" or "judge-generator"
+    private String nlqMode = "judge-generator"; // "single-call" or "judge-generator"
 
     private String azureOpenaiEndpoint;
     private String azureOpenaiApiKey;

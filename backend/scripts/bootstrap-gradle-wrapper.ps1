@@ -10,7 +10,22 @@ $ErrorActionPreference = 'Stop'
 $BackendDir = (Resolve-Path $BackendDir).Path
 
 if (!(Test-Path $JdkHome)) {
-  throw "JDK not found at: $JdkHome"
+  if ($env:JAVA_HOME -and (Test-Path $env:JAVA_HOME)) {
+    $JdkHome = $env:JAVA_HOME
+  } else {
+    $javaCmd = Get-Command java -ErrorAction SilentlyContinue
+    if ($null -ne $javaCmd) {
+      $javaPath = $javaCmd.Source
+      $candidate = Split-Path -Parent (Split-Path -Parent $javaPath)
+      if (Test-Path $candidate) {
+        $JdkHome = $candidate
+      }
+    }
+  }
+}
+
+if (!(Test-Path $JdkHome)) {
+  throw "JDK not found at: $JdkHome. Set JAVA_HOME or install JDK 17."
 }
 
 $env:JAVA_HOME = $JdkHome
