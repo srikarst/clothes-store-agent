@@ -163,6 +163,51 @@ small.tag {
   gap: 16px;
 }
 
+.chatList {
+  margin-top: 12px;
+  height: 320px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #0f1419;
+  padding: 12px;
+}
+
+.chatEmpty {
+  color: var(--muted);
+  padding: 10px 2px;
+}
+
+.chatMsg {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: #121826;
+}
+
+.chatMsg.chatUser {
+  background: #111c2f;
+  border-color: #263a66;
+}
+
+.chatMsg.chatAssistant {
+  background: #141a24;
+}
+
+.chatRole {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.chatContent {
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
 label {
   color: var(--text-secondary);
 }

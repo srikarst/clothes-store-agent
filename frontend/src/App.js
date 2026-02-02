@@ -4,6 +4,7 @@ import QueryPanel from './components/QueryPanel';
 import NlqPanel from './components/NlqPanel';
 import ResultPanel from './components/ResultPanel';
 import Playground from './components/Playground/Playground';
+import ChatPanel from './components/ChatPanel';
 
 function App() {
   const [queryResult, setQueryResult] = React.useState({});
@@ -18,6 +19,7 @@ function App() {
       </p>
 
       <div className="grid">
+        <ChatPanel />
         <SchemaPanel />
         <QueryPanel setQueryResult={setQueryResult} />
         <NlqPanel />
