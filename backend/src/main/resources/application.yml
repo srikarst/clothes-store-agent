@@ -64,3 +64,7 @@ app:
   historyEnabled: ${APP_HISTORY_ENABLED:true}
   historyMaxTurns: ${APP_HISTORY_MAX_TURNS:6}
   historyTtlMinutes: ${APP_HISTORY_TTL_MINUTES:1440}
+
+  # Phase 0 chat shell settings
+  chatSystemPrompt: ${APP_CHAT_SYSTEM_PROMPT:You are a helpful assistant for a clothes store application. Be concise.}
+  chatDefaultTemperature: ${APP_CHAT_DEFAULT_TEMPERATURE:0.2}

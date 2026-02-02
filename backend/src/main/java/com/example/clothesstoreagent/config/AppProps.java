@@ -32,6 +32,10 @@ public class AppProps {
     private int historyMaxTurns = 6;
     private int historyTtlMinutes = 1440;
 
+    // Phase 0 chat shell (general assistant)
+    private String chatSystemPrompt = "You are a helpful assistant for a clothes store application. Be concise.";
+    private double chatDefaultTemperature = 0.2;
+
     public boolean isReadOnly() { return readOnly; }
     public void setReadOnly(boolean readOnly) { this.readOnly = readOnly; }
 
@@ -82,4 +86,10 @@ public class AppProps {
 
     public int getHistoryTtlMinutes() { return historyTtlMinutes; }
     public void setHistoryTtlMinutes(int historyTtlMinutes) { this.historyTtlMinutes = historyTtlMinutes; }
+
+    public String getChatSystemPrompt() { return chatSystemPrompt; }
+    public void setChatSystemPrompt(String chatSystemPrompt) { this.chatSystemPrompt = chatSystemPrompt; }
+
+    public double getChatDefaultTemperature() { return chatDefaultTemperature; }
+    public void setChatDefaultTemperature(double chatDefaultTemperature) { this.chatDefaultTemperature = chatDefaultTemperature; }
 }
