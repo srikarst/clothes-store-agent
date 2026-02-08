@@ -1,10 +1,12 @@
 package com.example.clothesstoreagent.chat;
 
 import com.example.clothesstoreagent.config.AppProps;
+import com.example.clothesstoreagent.domains.DomainRouter;
 import com.example.clothesstoreagent.memory.ChatMessage;
 import com.example.clothesstoreagent.memory.ChatRole;
 import com.example.clothesstoreagent.memory.ConversationStore;
 import com.example.clothesstoreagent.memory.InMemoryConversationStore;
+import com.example.clothesstoreagent.tools.DefaultToolRegistry;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -30,10 +32,17 @@ class ChatOrchestratorTest {
         store.append("c1", new ChatMessage(ChatRole.ASSISTANT, "hi", Instant.now()));
 
         ChatModel model = mock(ChatModel.class);
-        when(model.complete(any(), any())).thenReturn(new ChatCompletion("assistant reply"));
+        when(model.complete(any(), any())).thenReturn(new ChatCompletion("{\"type\":\"final\",\"assistantMessage\":\"assistant reply\"}"));
         when(model.info()).thenReturn(new ChatModelInfo("azure", "dep"));
 
-        ChatOrchestrator orch = new ChatOrchestrator(props, store, model);
+        ChatOrchestrator orch = new ChatOrchestrator(
+                props,
+                store,
+                model,
+                new DomainRouter(),
+                new DefaultToolRegistry(List.of()),
+                new com.fasterxml.jackson.databind.ObjectMapper()
+        );
         ChatOrchestrator.Result out = orch.chat("c1", "next", 12, 0.1);
 
         assertThat(out.assistantMessage()).isEqualTo("assistant reply");

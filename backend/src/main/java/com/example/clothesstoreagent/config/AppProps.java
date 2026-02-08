@@ -36,6 +36,10 @@ public class AppProps {
     private String chatSystemPrompt = "You are a helpful assistant for a clothes store application. Be concise.";
     private double chatDefaultTemperature = 0.2;
 
+    // Phase 1 tools loop
+    private int chatMaxSteps = 4;
+    private int toolResultMaxChars = 3000;
+
     public boolean isReadOnly() { return readOnly; }
     public void setReadOnly(boolean readOnly) { this.readOnly = readOnly; }
 
@@ -92,4 +96,10 @@ public class AppProps {
 
     public double getChatDefaultTemperature() { return chatDefaultTemperature; }
     public void setChatDefaultTemperature(double chatDefaultTemperature) { this.chatDefaultTemperature = chatDefaultTemperature; }
+
+    public int getChatMaxSteps() { return chatMaxSteps; }
+    public void setChatMaxSteps(int chatMaxSteps) { this.chatMaxSteps = chatMaxSteps; }
+
+    public int getToolResultMaxChars() { return toolResultMaxChars; }
+    public void setToolResultMaxChars(int toolResultMaxChars) { this.toolResultMaxChars = toolResultMaxChars; }
 }

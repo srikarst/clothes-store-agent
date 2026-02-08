@@ -55,6 +55,12 @@ public class AzureOpenAiChatModel implements ChatModel {
         double temp = options != null && options.temperature() != null ? options.temperature() : props.getChatDefaultTemperature();
         body.put("temperature", temp);
 
+        boolean wantJson = options != null && Boolean.TRUE.equals(options.responseFormatJson());
+        if (wantJson) {
+            // Azure OpenAI Chat Completions supports structured JSON output via response_format.
+            body.put("response_format", Map.of("type", "json_object"));
+        }
+
         String url = props.getAzureOpenaiEndpoint().replaceAll("/+$", "") +
                 "/openai/deployments/" + props.getAzureOpenaiDeployment() +
                 "/chat/completions?api-version=" + props.getAzureOpenaiApiVersion();

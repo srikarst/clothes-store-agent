@@ -1,7 +1,8 @@
 package com.example.clothesstoreagent.chat;
 
 public record ChatModelOptions(
-        Double temperature
+        Double temperature,
+        Boolean responseFormatJson
 ) {}
 
 

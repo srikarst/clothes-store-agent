@@ -7,6 +7,9 @@ function ChatPanel() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [isSending, setIsSending] = useState(false);
+  const [domainHint, setDomainHint] = useState('auto'); // auto | general | analytics_sql
+  const [showToolTrace, setShowToolTrace] = useState(false);
+  const [lastToolTrace, setLastToolTrace] = useState(null);
   const listRef = useRef(null);
 
   const hasConversation = useMemo(() => !!conversationId && conversationId.trim().length > 0, [conversationId]);
@@ -32,6 +35,7 @@ function ChatPanel() {
 
     setIsSending(true);
     setInput('');
+    setLastToolTrace(null);
     setMessages((prev) => [...prev, { role: 'user', content: text }]);
 
     try {
@@ -43,7 +47,7 @@ function ChatPanel() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({ message: text, domainHint, showToolTrace })
       });
 
       const data = await res.json();
@@ -55,6 +59,9 @@ function ChatPanel() {
         setConversationId(data.conversationId);
       }
 
+      if (showToolTrace) {
+        setLastToolTrace(Array.isArray(data.toolTrace) ? data.toolTrace : []);
+      }
       setMessages((prev) => [...prev, { role: 'assistant', content: data.assistantMessage || '' }]);
     } catch (err) {
       console.error(err);
@@ -69,6 +76,7 @@ function ChatPanel() {
     setConversationId('');
     setMessages([]);
     setInput('');
+    setLastToolTrace(null);
 
     // Optional: clear server-side too
     if (oldId) {
@@ -99,6 +107,32 @@ function ChatPanel() {
         </div>
       </div>
 
+      <div className="row" style={{ marginTop: 8, alignItems: 'center', gap: 10 }}>
+        <label className="mono" style={{ fontSize: 12 }}>
+          Domain
+          <select
+            value={domainHint}
+            onChange={(e) => setDomainHint(e.target.value)}
+            disabled={isSending}
+            style={{ marginLeft: 8 }}
+          >
+            <option value="auto">Auto</option>
+            <option value="general">General</option>
+            <option value="analytics_sql">Analytics (SQL)</option>
+          </select>
+        </label>
+        <label className="mono" style={{ fontSize: 12 }}>
+          <input
+            type="checkbox"
+            checked={showToolTrace}
+            onChange={(e) => setShowToolTrace(e.target.checked)}
+            disabled={isSending}
+            style={{ marginRight: 6 }}
+          />
+          Show tool trace
+        </label>
+      </div>
+
       <div ref={listRef} className="chatList" role="log" aria-label="Chat messages">
         {messages.length === 0 ? (
           <div className="chatEmpty">
@@ -113,6 +147,29 @@ function ChatPanel() {
           ))
         )}
       </div>
+
+      {showToolTrace && lastToolTrace && (
+        <details style={{ marginTop: 10 }}>
+          <summary className="mono" style={{ cursor: 'pointer' }}>
+            Tool Trace {lastToolTrace.length ? `(${lastToolTrace.length})` : ''}
+          </summary>
+          <div style={{ marginTop: 8 }} className="mono">
+            {lastToolTrace.length === 0 ? (
+              <div style={{ opacity: 0.7 }}>No tools ran for the last assistant response.</div>
+            ) : (
+              lastToolTrace.map((t) => (
+                <div key={`${t.step}-${t.tool}`} style={{ padding: '6px 0', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div>
+                    step {t.step}: <strong>{t.tool}</strong> ok={String(t.ok)}
+                  </div>
+                  <div style={{ opacity: 0.75 }}>args: {JSON.stringify(t.args || {})}</div>
+                  <div style={{ opacity: 0.75 }}>result: {t.resultPreview}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </details>
+      )}
 
       <div className="row" style={{ marginTop: 12 }}>
         <textarea

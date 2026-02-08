@@ -1,8 +1,11 @@
 package com.example.clothesstoreagent.chat;
 
 import com.example.clothesstoreagent.config.AppProps;
+import com.example.clothesstoreagent.domains.DomainRouter;
 import com.example.clothesstoreagent.memory.ConversationStore;
 import com.example.clothesstoreagent.memory.InMemoryConversationStore;
+import com.example.clothesstoreagent.tools.ToolRegistry;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -28,8 +31,13 @@ public class ChatConfig {
     }
 
     @Bean
-    public ChatOrchestrator chatOrchestrator(AppProps props, ConversationStore store, ChatModel model) {
-        return new ChatOrchestrator(props, store, model);
+    public ChatOrchestrator chatOrchestrator(AppProps props,
+                                             ConversationStore store,
+                                             ChatModel model,
+                                             DomainRouter domainRouter,
+                                             ToolRegistry toolRegistry,
+                                             ObjectMapper om) {
+        return new ChatOrchestrator(props, store, model, domainRouter, toolRegistry, om);
     }
 }
 

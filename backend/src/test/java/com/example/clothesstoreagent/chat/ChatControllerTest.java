@@ -16,8 +16,21 @@ class ChatControllerTest {
     void returnsConversationIdAndAssistantMessage() {
         ConversationStore store = mock(ConversationStore.class);
         ChatOrchestrator orch = mock(ChatOrchestrator.class);
-        when(orch.chat("c1", "hi", null, null))
-                .thenReturn(new ChatOrchestrator.Result("hello!", 0, new ChatModelInfo("azure", "dep")));
+        when(orch.chatV1("c1", "hi",
+                com.example.clothesstoreagent.domains.DomainHint.AUTO,
+                true,
+                null,
+                null,
+                null,
+                false))
+                .thenReturn(new ChatOrchestrator.Result(
+                        "hello!",
+                        0,
+                        new ChatModelInfo("azure", "dep"),
+                        "general",
+                        false,
+                        java.util.List.of()
+                ));
 
         ChatController c = new ChatController(orch, store);
         ChatController.ChatRequest req = new ChatController.ChatRequest();

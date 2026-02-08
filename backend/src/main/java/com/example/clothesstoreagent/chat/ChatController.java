@@ -1,6 +1,7 @@
 package com.example.clothesstoreagent.chat;
 
 import com.example.clothesstoreagent.memory.ConversationStore;
+import com.example.clothesstoreagent.domains.DomainHint;
 import jakarta.validation.constraints.NotBlank;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,8 +31,15 @@ public class ChatController {
     public static class ChatRequest {
         @NotBlank public String message;
         public String conversationId;
+        // Backward-compatible (Phase 0)
         public Integer maxTurns;
         public Double temperature;
+
+        // Phase 1
+        public String domainHint; // general | analytics_sql | auto
+        public Boolean executeTools;
+        public Integer maxSteps;
+        public Boolean showToolTrace;
     }
 
     @PostMapping
@@ -54,20 +62,40 @@ public class ChatController {
         String conversationId = resolved.conversationId();
 
         int msgLen = req.message.length();
-        log.info("Chat request conversationId='{}' messageLength={} maxTurns={} temperature={}",
-                conversationId, msgLen, req != null ? req.maxTurns : null, req != null ? req.temperature : null);
+        log.info("Chat request conversationId='{}' messageLength={} maxTurns={} temperature={} domainHint={} executeTools={} maxSteps={} showToolTrace={}",
+                conversationId,
+                msgLen,
+                req.maxTurns,
+                req.temperature,
+                req.domainHint,
+                req.executeTools,
+                req.maxSteps,
+                req.showToolTrace);
 
-        ChatOrchestrator.Result r = orchestrator.chat(
+        DomainHint hint = DomainHint.fromId(req.domainHint);
+        if (hint == null) hint = DomainHint.AUTO;
+        boolean executeTools = req.executeTools == null || Boolean.TRUE.equals(req.executeTools);
+        boolean showToolTrace = req.showToolTrace != null && Boolean.TRUE.equals(req.showToolTrace);
+
+        ChatOrchestrator.Result r = orchestrator.chatV1(
                 conversationId,
                 req.message,
+                hint,
+                executeTools,
+                req.maxSteps,
                 req.maxTurns,
-                req.temperature
+                req.temperature,
+                showToolTrace
         );
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("conversationId", conversationId);
         out.put("assistantMessage", r.assistantMessage());
-        out.put("historyUsedTurns", r.historyUsedTurns());
+        out.put("domain", r.domain());
+        out.put("ranTools", r.ranTools());
+        if (showToolTrace) {
+            out.put("toolTrace", r.toolTrace());
+        }
         out.put("model", Map.of(
                 "provider", r.modelInfo().provider(),
                 "deployment", r.modelInfo().deployment()
