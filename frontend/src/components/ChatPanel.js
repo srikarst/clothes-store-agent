@@ -7,9 +7,10 @@ function ChatPanel() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [isSending, setIsSending] = useState(false);
-  const [domainHint, setDomainHint] = useState('auto'); // auto | general | analytics_sql
+  const [domainHint, setDomainHint] = useState('auto'); // auto | general | analytics_sql | mcp_tools
   const [showToolTrace, setShowToolTrace] = useState(false);
   const [lastToolTrace, setLastToolTrace] = useState(null);
+  const [mcpStatus, setMcpStatus] = useState(null);
   const listRef = useRef(null);
 
   const hasConversation = useMemo(() => !!conversationId && conversationId.trim().length > 0, [conversationId]);
@@ -28,6 +29,24 @@ function ChatPanel() {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const refreshMcpStatus = async () => {
+    try {
+      const res = await fetch('/api/mcp/servers');
+      if (!res.ok) return;
+      const data = await res.json();
+      setMcpStatus(data);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    if (domainHint === 'mcp_tools') {
+      refreshMcpStatus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domainHint]);
 
   const send = async () => {
     const text = input.trim();
@@ -119,6 +138,7 @@ function ChatPanel() {
             <option value="auto">Auto</option>
             <option value="general">General</option>
             <option value="analytics_sql">Analytics (SQL)</option>
+            <option value="mcp_tools">MCP Tools</option>
           </select>
         </label>
         <label className="mono" style={{ fontSize: 12 }}>
@@ -148,6 +168,41 @@ function ChatPanel() {
         )}
       </div>
 
+      {domainHint === 'mcp_tools' && (
+        <details style={{ marginTop: 10 }}>
+          <summary className="mono" style={{ cursor: 'pointer' }}>
+            MCP Status {mcpStatus ? (mcpStatus.enabled ? '(enabled)' : '(disabled)') : ''}
+          </summary>
+          <div style={{ marginTop: 8 }} className="mono">
+            {!mcpStatus ? (
+              <div style={{ opacity: 0.7 }}>Loading…</div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                  <div style={{ opacity: 0.75 }}>Servers: {Array.isArray(mcpStatus.servers) ? mcpStatus.servers.length : 0}</div>
+                  <button className="secondary" onClick={refreshMcpStatus} disabled={isSending}>
+                    Refresh
+                  </button>
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  {(Array.isArray(mcpStatus.servers) ? mcpStatus.servers : []).map((s) => (
+                    <div key={s.id} style={{ padding: '6px 0', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div>
+                        <strong>{s.id}</strong> <span style={{ opacity: 0.75 }}>({s.transport})</span>
+                      </div>
+                      <div style={{ opacity: 0.75 }}>
+                        status: {String(s.status)} tools: {String(s.toolCount)}
+                      </div>
+                      {s.lastError && <div style={{ opacity: 0.7 }}>error: {s.lastError}</div>}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </details>
+      )}
+
       {showToolTrace && lastToolTrace && (
         <details style={{ marginTop: 10 }}>
           <summary className="mono" style={{ cursor: 'pointer' }}>
@@ -161,6 +216,11 @@ function ChatPanel() {
                 <div key={`${t.step}-${t.tool}`} style={{ padding: '6px 0', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                   <div>
                     step {t.step}: <strong>{t.tool}</strong> ok={String(t.ok)}
+                    {t.provider && (
+                      <span className="pill mono" style={{ marginLeft: 8 }}>
+                        {t.provider}
+                      </span>
+                    )}
                   </div>
                   <div style={{ opacity: 0.75 }}>args: {JSON.stringify(t.args || {})}</div>
                   <div style={{ opacity: 0.75 }}>result: {t.resultPreview}</div>

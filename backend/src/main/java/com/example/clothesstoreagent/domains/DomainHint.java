@@ -6,7 +6,8 @@ package com.example.clothesstoreagent.domains;
 public enum DomainHint {
     AUTO("auto"),
     GENERAL("general"),
-    ANALYTICS_SQL("analytics_sql");
+    ANALYTICS_SQL("analytics_sql"),
+    MCP_TOOLS("mcp_tools");
 
     private final String id;
 
@@ -25,6 +26,7 @@ public enum DomainHint {
             case "auto" -> AUTO;
             case "general" -> GENERAL;
             case "analytics_sql", "analytics", "sql" -> ANALYTICS_SQL;
+            case "mcp_tools", "mcp" -> MCP_TOOLS;
             default -> null;
         };
     }

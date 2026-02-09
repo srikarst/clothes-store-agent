@@ -11,6 +11,7 @@ public class DomainRouter {
     public Domain route(DomainHint hint, String userMessage) {
         if (hint == DomainHint.GENERAL) return Domain.GENERAL;
         if (hint == DomainHint.ANALYTICS_SQL) return Domain.ANALYTICS_SQL;
+        if (hint == DomainHint.MCP_TOOLS) return Domain.MCP_TOOLS;
 
         // AUTO (default)
         String msg = userMessage != null ? userMessage : "";
@@ -22,6 +23,17 @@ public class DomainRouter {
                 "sql", "database", "db", "schema", "table", "column", "query", "select", "join",
                 "group by", "count(", "sum(", "avg(", "trend", "last month", "last week")) {
             return Domain.ANALYTICS_SQL;
+        }
+
+        // MCP tools experimentation domain signals.
+        if (containsAny(m,
+                "mcp", "mcp_tools",
+                "use mcp", "mcp tool", "mcp tools",
+                "call tool", "tool call",
+                "server", "tool server", "mcp server",
+                "tools/list", "tools/call",
+                "tool")) {
+            return Domain.MCP_TOOLS;
         }
 
         return Domain.GENERAL;

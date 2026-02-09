@@ -132,7 +132,7 @@ public class ChatOrchestrator {
             }
 
             if (domain == Domain.GENERAL) {
-                assistantFinal = "I’m in the general domain and won’t run database tools. Please switch to Analytics (SQL) or ask a non-DB question.";
+                assistantFinal = "I’m in the general domain and won’t run tools. Please switch to a tools-enabled domain (Analytics SQL or MCP Tools) or ask a general question.";
                 break;
             }
 
@@ -175,7 +175,7 @@ public class ChatOrchestrator {
 
             String preview = preview(tr.content(), 220);
             if (showToolTrace) {
-                trace.add(new ToolTraceItem(step, tool.spec().name(), args, tr.ok(), preview));
+                trace.add(new ToolTraceItem(step, tool.spec().name(), toolProvider(tool.spec().name()), args, tr.ok(), preview));
             }
 
             log.info("Tool ran name={} ok={}", tool.spec().name(), tr.ok());
@@ -250,13 +250,23 @@ public class ChatOrchestrator {
             sb.append("Domain: general. Do not call tools.\n");
             sb.append("Always respond with type=\"final\".\n");
             return sb.toString();
+        } else if (domain == Domain.ANALYTICS_SQL) {
+            sb.append("Domain: analytics_sql. You can plan and query a SQL database using tools.\n");
+            if (!executeTools) {
+                sb.append("Tools are DISABLED for this request; you may still propose a tool_call, but it won't run.\n");
+            }
+            sb.append("Prefer using db.schema_compact first if you need schema context.\n\n");
+        } else if (domain == Domain.MCP_TOOLS) {
+            sb.append("Domain: mcp_tools. You can use MCP tools to answer questions.\n");
+            if (!executeTools) {
+                sb.append("Tools are DISABLED for this request; you may still propose a tool_call, but it won't run.\n");
+            }
+            sb.append("Whenever a suitable tool is available in the list below, you MUST use type=\"tool_call\" rather than answering from your own knowledge.\n");
+            sb.append("This is especially important for computations (e.g., addition).\n\n");
+        } else {
+            // Safe fallback for future domains.
+            sb.append("Domain: ").append(domain.id()).append(".\n\n");
         }
-
-        sb.append("Domain: analytics_sql. You can plan and query a SQL database using tools.\n");
-        if (!executeTools) {
-            sb.append("Tools are DISABLED for this request; you may still propose a tool_call, but it won't run.\n");
-        }
-        sb.append("Prefer using db.schema_compact first if you need schema context.\n\n");
 
         ToolContext ctx = new ToolContext("n/a", domain, null, null, null);
         List<ToolSpec> specs = tools.listTools(domain, ctx);
@@ -289,6 +299,19 @@ public class ChatOrchestrator {
     private static String preview(String s, int maxChars) {
         String t = truncate(s, Math.max(0, maxChars));
         return t.replaceAll("\\s+", " ").trim();
+    }
+
+    private static String toolProvider(String toolName) {
+        if (toolName == null || toolName.isBlank()) return "local";
+        String n = toolName.trim().toLowerCase(Locale.ROOT);
+        if (n.startsWith("mcp.")) {
+            String[] parts = n.split("\\.", 3);
+            if (parts.length >= 2 && parts[1] != null && !parts[1].isBlank()) {
+                return "mcp:" + parts[1];
+            }
+            return "mcp";
+        }
+        return "local";
     }
 }
 
