@@ -15,3 +15,5 @@ backend/.gradle-local/
 *.jar
 *.war
 *.ear
+
+.vscode/tasks.secrets.json

@@ -17,27 +17,7 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-aop'
-    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-
-    // Optional: use Reactor types (Mono/Flux) with Spring MVC async support.
-    implementation 'io.projectreactor:reactor-core'
-
-    runtimeOnly 'com.h2database:h2'
-
-    // Microsoft SQL Server JDBC driver (pick ONE of these)
-    // Preferred (latest):
-    runtimeOnly 'com.microsoft.sqlserver:mssql-jdbc:13.2.0.jre11'
-    // Or if you need to pin to 12.x:
-    // runtimeOnly 'com.microsoft.sqlserver:mssql-jdbc:12.6.1.jre11'
-
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-}
-
-tasks.withType(Test).configureEach {
-    useJUnitPlatform()
 }
 
 bootRun {
