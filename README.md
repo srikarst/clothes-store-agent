@@ -45,3 +45,18 @@ The app now supports file-based ingestion and Qdrant indexing:
 4. Manual reindex endpoint:
    - `POST /api/rag/reindex`
    - Optional auth header if configured: `X-RAG-ADMIN-TOKEN`
+
+## Hybrid Retrieval + Reranking
+
+Query-time retrieval now supports vector + BM25 hybrid search with semantic reranking.
+
+Optional controls:
+
+- `APP_RAG_HYBRID_ENABLED` (default `true`)
+- `APP_RAG_RERANK_ENABLED` (default `true`)
+- `APP_RAG_VECTOR_CANDIDATES` (default `12`)
+- `APP_RAG_BM25_CANDIDATES` (default `12`)
+- `APP_RAG_RERANK_CANDIDATES` (default `8`)
+- `APP_RAG_RERANK_WEIGHT_VECTOR` (default `0.45`)
+- `APP_RAG_RERANK_WEIGHT_BM25` (default `0.25`)
+- `APP_RAG_RERANK_WEIGHT_SEMANTIC` (default `0.30`)

@@ -27,7 +27,7 @@ For each message, the backend does this in order:
    - `post_purchase_support` for returns/refunds.
    - `order_fulfillment_support` for shipping/delivery ETA.
    - `general_help` when no rule matches.
-2. Retrieves top matching context chunks from Qdrant using embedding search.
+2. Retrieves top matching context chunks using hybrid retrieval (Qdrant vector search + BM25 + reranking).
 3. Runs local extraction tools before MCP:
    - `extract_return_context`
    - `extract_delivery_context`

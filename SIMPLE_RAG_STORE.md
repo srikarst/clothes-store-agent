@@ -12,9 +12,11 @@ File: `backend/src/main/java/com/example/clothesstoreagent/simple/QdrantRagStore
 Flow:
 
 1. Embed user query with `AzureOpenAiEmbeddingClient`.
-2. Call Qdrant `points/search`.
-3. Parse `result` hits into chunk records (`text`, `source`, `score`).
-4. Sort and return top `ragContext` strings.
+2. Vector retrieval from Qdrant `points/search`.
+3. BM25 lexical retrieval from source docs (`APP_RAG_SOURCE_DIR`).
+4. Merge vector and BM25 candidates.
+5. Semantic rerank pass (embedding cosine on top candidates).
+6. Return top `ragContext` strings.
 
 ## Ingestion-time indexing (Phase 2)
 

@@ -70,7 +70,22 @@ class SimpleAgentServiceTest {
                 3,
                 0.25,
                 "text",
-                "source"
+                "source",
+                true,
+                true,
+                12,
+                12,
+                8,
+                0.45,
+                0.25,
+                0.30,
+                "rag-docs",
+                "md,txt",
+                400,
+                60,
+                60000,
+                1.5,
+                0.75
         );
         SimpleMcpClient mcpClient = new SimpleMcpClient(objectMapper);
         SimpleModelClient modelClient = new SimpleModelClient(

@@ -55,7 +55,7 @@ flowchart TD
    - `backend/src/main/java/com/example/clothesstoreagent/simple/SimpleAgentService.java`
 3. Local tools + MCP call simulation  
    - `backend/src/main/java/com/example/clothesstoreagent/simple/SimpleMcpClient.java`
-4. Context retrieval (RAG query time)  
+4. Context retrieval (RAG query time: vector + BM25 + rerank)  
    - `backend/src/main/java/com/example/clothesstoreagent/simple/QdrantRagStore.java`
 5. RAG indexing (ingestion phase)  
    - `backend/src/main/java/com/example/clothesstoreagent/simple/QdrantRagIndexer.java`
