@@ -30,9 +30,11 @@ function App() {
 
       setMessages((prev) => [...prev, { role: 'assistant', content: data.assistantMessage || '' }]);
       setLastMeta({
-        intent: data.intent,
+        skill: data.skill,
+        route: data.route,
         ragContext: Array.isArray(data.ragContext) ? data.ragContext : [],
-        mcp: data.mcp || null
+        localTools: Array.isArray(data.localTools) ? data.localTools : [],
+        mcpCalls: Array.isArray(data.mcpCalls) ? data.mcpCalls : []
       });
     } catch (error) {
       setMessages((prev) => [...prev, { role: 'assistant', content: `Error: ${error.message}` }]);
@@ -54,12 +56,12 @@ function App() {
       <section className="card">
         <h1>Clothes Store Agent</h1>
         <p className="hint">
-          Minimal demo: intent detection, RAG context retrieval, and MCP-style tool call in one chat endpoint.
+          Deterministic skill routing with local extraction tools and multi-MCP orchestration.
         </p>
 
         <div className="chatList">
           {messages.length === 0 ? (
-            <p className="empty">Ask about products, returns, or math like "add 12 and 8".</p>
+            <p className="empty">Try: "Can I return this after 12 days?" or "How fast can this ship internationally?"</p>
           ) : (
             messages.map((message, index) => (
               <article key={`${message.role}-${index}`} className={`chatMessage ${message.role}`}>
@@ -72,15 +74,24 @@ function App() {
 
         {lastMeta && (
           <div className="meta">
-            <p><strong>Intent:</strong> {lastMeta.intent}</p>
+            <p><strong>Skill:</strong> {lastMeta.skill || 'general_help'}</p>
+            <p><strong>Route:</strong> {lastMeta.route || 'none'}</p>
             <p>
               <strong>RAG:</strong>{' '}
               {lastMeta.ragContext.length > 0 ? lastMeta.ragContext.join(' | ') : 'No matching context'}
             </p>
             <p>
-              <strong>MCP:</strong>{' '}
-              {lastMeta.mcp
-                ? `${lastMeta.mcp.toolName} -> ${lastMeta.mcp.output} (${lastMeta.mcp.ok ? 'ok' : 'failed'})`
+              <strong>Local Tools:</strong>{' '}
+              {lastMeta.localTools.length > 0
+                ? lastMeta.localTools.map((tool) => `${tool.toolName} -> ${tool.output}`).join(' | ')
+                : 'No local tool execution'}
+            </p>
+            <p>
+              <strong>MCP Calls:</strong>{' '}
+              {lastMeta.mcpCalls.length > 0
+                ? lastMeta.mcpCalls
+                  .map((call) => `${call.serverId}/${call.toolName} -> ${call.output} (${call.ok ? 'ok' : 'failed'})`)
+                  .join(' | ')
                 : 'No MCP call for this message'}
             </p>
           </div>

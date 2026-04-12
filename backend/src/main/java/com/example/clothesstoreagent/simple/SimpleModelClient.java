@@ -43,30 +43,31 @@ public class SimpleModelClient {
     }
 
     public String generateAssistantMessage(String userMessage,
-                                           String intent,
+                                           String skill,
                                            List<String> ragContext,
-                                           SimpleMcpClient.McpResult mcpResult) {
+                                           List<SimpleMcpClient.LocalToolResult> localToolResults,
+                                           List<SimpleMcpClient.McpResult> mcpResults) {
         if (!isConfigured()) {
             return null;
         }
 
-        String mcpInfo = mcpResult == null
-                ? "none"
-                : "tool=" + mcpResult.toolName() + ", ok=" + mcpResult.ok() + ", output=" + mcpResult.output();
+        String localToolInfo = summarizeLocalTools(localToolResults);
+        String mcpInfo = summarizeMcpCalls(mcpResults);
         String ragInfo = (ragContext == null || ragContext.isEmpty())
                 ? "none"
                 : String.join(" | ", ragContext);
 
         String prompt = """
                 User message: %s
-                Detected intent: %s
+                Routed skill: %s
                 Retrieved context: %s
-                MCP result: %s
+                Local tool results: %s
+                MCP call results: %s
 
                 Respond as a helpful clothes-store assistant in plain text.
                 Keep it concise (max 3 short sentences).
                 Use retrieved context when available.
-                """.formatted(userMessage, intent, ragInfo, mcpInfo);
+                """.formatted(userMessage, skill, ragInfo, localToolInfo, mcpInfo);
 
         try {
             Map<String, Object> payload = new LinkedHashMap<>();
@@ -107,6 +108,41 @@ public class SimpleModelClient {
 
     private boolean isConfigured() {
         return notBlank(endpoint) && notBlank(deployment) && notBlank(apiVersion) && notBlank(apiKey);
+    }
+
+    private static String summarizeLocalTools(List<SimpleMcpClient.LocalToolResult> localToolResults) {
+        if (localToolResults == null || localToolResults.isEmpty()) {
+            return "none";
+        }
+        StringBuilder summary = new StringBuilder();
+        for (int i = 0; i < localToolResults.size(); i++) {
+            SimpleMcpClient.LocalToolResult local = localToolResults.get(i);
+            if (i > 0) {
+                summary.append(" | ");
+            }
+            summary.append(local.toolName())
+                    .append("(ok=").append(local.ok())
+                    .append(", output=").append(local.output()).append(")");
+        }
+        return summary.toString();
+    }
+
+    private static String summarizeMcpCalls(List<SimpleMcpClient.McpResult> mcpResults) {
+        if (mcpResults == null || mcpResults.isEmpty()) {
+            return "none";
+        }
+        StringBuilder summary = new StringBuilder();
+        for (int i = 0; i < mcpResults.size(); i++) {
+            SimpleMcpClient.McpResult mcp = mcpResults.get(i);
+            if (i > 0) {
+                summary.append(" | ");
+            }
+            summary.append(mcp.serverId()).append("/").append(mcp.toolName())
+                    .append("(ok=").append(mcp.ok())
+                    .append(", latencyMs=").append(mcp.latencyMs())
+                    .append(", output=").append(mcp.output()).append(")");
+        }
+        return summary.toString();
     }
 
     private static boolean notBlank(String value) {

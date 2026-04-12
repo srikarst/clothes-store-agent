@@ -2,7 +2,7 @@
 
 This note explains what happens inside:
 
-- `modelClient.generateAssistantMessage(cleanMessage, intent, ragContext, mcp)`
+- `modelClient.generateAssistantMessage(cleanMessage, skill, ragContext, localTools, mcpCalls)`
 
 in the simple chat flow.
 
@@ -11,9 +11,10 @@ in the simple chat flow.
 `SimpleAgentService.chat(...)` prepares:
 
 - `cleanMessage` (trimmed user input)
-- `intent` (rule-based intent label)
+- `skill` (rule-based skill label)
 - `ragContext` (top retrieved context lines)
-- `mcp` (optional MCP tool result)
+- `localTools` (optional local extraction tool results)
+- `mcpCalls` (optional MCP tool call results)
 
 Then it calls `SimpleModelClient.generateAssistantMessage(...)` to get an LLM-written reply.
 
@@ -27,9 +28,12 @@ Then it calls `SimpleModelClient.generateAssistantMessage(...)` to get an LLM-wr
      - `APP_AZURE_API_KEY`
 
 2. **Normalize context for prompt**
+   - Builds `localToolInfo`:
+     - `"none"` when no local tools ran
+     - otherwise joins local tool summaries
    - Builds `mcpInfo`:
      - `"none"` when MCP did not run
-     - otherwise `"tool=<name>, ok=<true|false>, output=<text>"`
+     - otherwise joins MCP call summaries including latency
    - Builds `ragInfo`:
      - `"none"` when no context was retrieved
      - otherwise joins entries with `" | "`
@@ -37,8 +41,9 @@ Then it calls `SimpleModelClient.generateAssistantMessage(...)` to get an LLM-wr
 3. **Build a single user prompt**
    - Injects:
      - user message
-     - detected intent
+     - routed skill
      - retrieved context text
+     - local tool result text
      - MCP result text
    - Adds behavior instructions:
      - be a helpful clothes-store assistant

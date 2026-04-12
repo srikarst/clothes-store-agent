@@ -21,5 +21,6 @@ Open `http://localhost:3000`.
 3. Read the agent response.
 
 Try messages like:
-- `add 12 and 8`
-- `what is your return policy`
+- `Can I return this hoodie after 12 days if it is unused and has tags?`
+- `How fast can this ship internationally with express delivery?`
+- `Which shipping option should I use if I need it in 2 days?`
