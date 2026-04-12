@@ -1,54 +1,46 @@
-# SimpleRagStore
+# Qdrant RAG Notes
 
-This document explains `backend/src/main/java/com/example/clothesstoreagent/simple/SimpleRagStore.java`.
+This project now uses:
 
-## Purpose
+- `QdrantRagStore` for query-time retrieval
+- `QdrantRagIndexer` for ingestion-time chunking and indexing
 
-`SimpleRagStore` is an in-memory lexical retriever used by chat flow to return short context snippets.
+## Query-time retrieval
 
-## Data source
+File: `backend/src/main/java/com/example/clothesstoreagent/simple/QdrantRagStore.java`
 
-The class stores a fixed list of documents in code (`docs`), each with:
+Flow:
 
-- `id` (for example: `returns`, `shipping`, `catalog`)
-- `text` (the context snippet returned to chat)
+1. Embed user query with `AzureOpenAiEmbeddingClient`.
+2. Call Qdrant `points/search`.
+3. Parse `result` hits into chunk records (`text`, `source`, `score`).
+4. Sort and return top `ragContext` strings.
 
-## Retrieval method
+## Ingestion-time indexing (Phase 2)
 
-Method: `retrieve(String query, int topK)`
+File: `backend/src/main/java/com/example/clothesstoreagent/simple/QdrantRagIndexer.java`
 
-1. Tokenize the incoming query.
-2. Tokenize each document text.
-3. Compute overlap score = number of shared tokens.
-4. Add bonus `+0.5` if raw query text contains the document `id`.
-5. Keep only documents with score `> 0`.
-6. Sort descending by score.
-7. Return up to `topK` document texts.
+Flow:
 
-## Tokenization rules
+1. Load docs from `APP_RAG_SOURCE_DIR` (default `backend/rag-docs` when running from repo root, `rag-docs` when running from backend dir).
+2. Split docs into chunks using token-window chunking:
+   - `APP_RAG_CHUNK_SIZE_TOKENS` (default `400`)
+   - `APP_RAG_CHUNK_OVERLAP_TOKENS` (default `60`)
+3. Delete existing chunks for each source file.
+4. Embed each chunk.
+5. Upsert vectors + payload metadata to Qdrant `points`.
 
-Method: `tokenize(String text)`
+Payload includes:
 
-- Lowercases input.
-- Splits on non-alphanumeric characters (`[^a-z0-9]+`).
-- Canonicalizes tokens:
-  - If token ends with `s` and length > 3, remove trailing `s`.
-  - Example: `returns` -> `return`, `jeans` -> `jean`.
-- Drops tokens shorter than 3 chars.
-- Drops stop words from `STOP_WORDS`.
-- Uses a `LinkedHashSet` to keep unique tokens while preserving order.
+- configured text key (`APP_RAG_TEXT_PAYLOAD_KEY`, default `text`)
+- configured source key (`APP_RAG_SOURCE_PAYLOAD_KEY`, default `source`)
+- `doc_id`, `chunk_index`, `chunk_count`, `updated_at`, `indexed_at`
 
-## Example
+## Trigger indexing
 
-Query: `what is your return policy`
-
-- After tokenization: includes `return`, `policy`.
-- `returns` document tokenizes to include `return`.
-- Overlap score becomes positive.
-- Result includes the returns-policy snippet in `ragContext`.
-
-## Notes
-
-- This is intentionally simple and deterministic.
-- No embeddings, no vector DB, no external service calls.
-- Good for demonstrating RAG behavior in a minimal app.
+- Startup indexing:
+  - `APP_RAG_INGEST_ON_STARTUP=true`
+  - Optional strict startup: `APP_RAG_INGEST_FAIL_STARTUP_ON_ERROR=true`
+- Manual endpoint:
+  - `POST /api/rag/reindex`
+  - Optional header when enabled: `X-RAG-ADMIN-TOKEN`

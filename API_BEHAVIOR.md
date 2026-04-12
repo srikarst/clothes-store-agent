@@ -1,8 +1,9 @@
 # API Behavior
 
-The backend exposes one endpoint:
+The backend exposes these endpoints:
 
 - `POST /api/chat`
+- `POST /api/rag/reindex`
 
 ## Request
 
@@ -26,7 +27,7 @@ For each message, the backend does this in order:
    - `post_purchase_support` for returns/refunds.
    - `order_fulfillment_support` for shipping/delivery ETA.
    - `general_help` when no rule matches.
-2. Retrieves top matching context snippets from the in-memory RAG store.
+2. Retrieves top matching context chunks from Qdrant using embedding search.
 3. Runs local extraction tools before MCP:
    - `extract_return_context`
    - `extract_delivery_context`
@@ -76,3 +77,16 @@ Notes:
 - `localTools` and `mcpCalls` are empty arrays when no tool is used.
 - `ragContext` can be empty if no relevant snippet matches.
 - `assistantMessage` is always a plain text summary of what happened.
+
+## RAG Reindex Endpoint
+
+`POST /api/rag/reindex` runs ingestion and indexing:
+
+1. Reads docs from `APP_RAG_SOURCE_DIR`.
+2. Chunks text with configured size and overlap.
+3. Creates embeddings for each chunk.
+4. Upserts chunks into Qdrant.
+
+If `APP_RAG_ADMIN_TOKEN` is set, include header:
+
+- `X-RAG-ADMIN-TOKEN: <token>`

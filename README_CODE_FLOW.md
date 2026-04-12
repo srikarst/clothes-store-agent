@@ -20,7 +20,7 @@ flowchart TD
     D -->|order_fulfillment_support| E
     D -->|general_help| H[No tool execution]
 
-    C --> F[SimpleRagStore.retrieve]
+    C --> F[QdrantRagStore.retrieve]
     E --> G[Local tool extraction]
     G --> I[MCP tool execution]
 
@@ -55,16 +55,20 @@ flowchart TD
    - `backend/src/main/java/com/example/clothesstoreagent/simple/SimpleAgentService.java`
 3. Local tools + MCP call simulation  
    - `backend/src/main/java/com/example/clothesstoreagent/simple/SimpleMcpClient.java`
-4. Context retrieval (RAG)  
-   - `backend/src/main/java/com/example/clothesstoreagent/simple/SimpleRagStore.java`
-5. LLM prompt and fallback boundary  
+4. Context retrieval (RAG query time)  
+   - `backend/src/main/java/com/example/clothesstoreagent/simple/QdrantRagStore.java`
+5. RAG indexing (ingestion phase)  
+   - `backend/src/main/java/com/example/clothesstoreagent/simple/QdrantRagIndexer.java`
+   - `backend/src/main/java/com/example/clothesstoreagent/simple/QdrantRagStartupIndexer.java`
+   - `backend/src/main/java/com/example/clothesstoreagent/simple/RagAdminController.java`
+6. LLM prompt and fallback boundary  
    - `backend/src/main/java/com/example/clothesstoreagent/simple/SimpleModelClient.java`
-6. Frontend metadata rendering  
+7. Frontend metadata rendering  
    - `frontend/src/App.js`
-7. MCP server scripts (tool contracts)  
+8. MCP server scripts (tool contracts)  
    - `mcp-servers/policy/server.js` (policy server behavior)
    - `mcp-servers/fulfillment/server.js`
-8. Tests that lock behavior  
+9. Tests that lock behavior  
    - `backend/src/test/java/com/example/clothesstoreagent/simple/SimpleAgentServiceTest.java`
    - `backend/src/test/java/com/example/clothesstoreagent/simple/SimpleMcpClientTest.java`
 
