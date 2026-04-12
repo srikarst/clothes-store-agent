@@ -51,10 +51,30 @@ class SimpleAgentServiceTest {
     }
 
     private static SimpleAgentService newService() {
-        SimpleRagStore ragStore = new SimpleRagStore();
-        SimpleMcpClient mcpClient = new SimpleMcpClient(new ObjectMapper());
+        ObjectMapper objectMapper = new ObjectMapper();
+        AzureOpenAiEmbeddingClient embeddingClient = new AzureOpenAiEmbeddingClient(
+                objectMapper,
+                "",
+                "",
+                "2024-02-15-preview",
+                "",
+                5000
+        );
+        QdrantRagStore ragStore = new QdrantRagStore(
+                objectMapper,
+                embeddingClient,
+                "",
+                "",
+                "",
+                5000,
+                3,
+                0.25,
+                "text",
+                "source"
+        );
+        SimpleMcpClient mcpClient = new SimpleMcpClient(objectMapper);
         SimpleModelClient modelClient = new SimpleModelClient(
-                new ObjectMapper(),
+                objectMapper,
                 "",
                 "",
                 "2024-02-15-preview",

@@ -9,11 +9,11 @@ import java.util.Set;
 @Service
 public class SimpleAgentService {
 
-    private final SimpleRagStore ragStore;
+    private final QdrantRagStore ragStore;
     private final SimpleMcpClient mcpClient;
     private final SimpleModelClient modelClient;
 
-    public SimpleAgentService(SimpleRagStore ragStore, SimpleMcpClient mcpClient, SimpleModelClient modelClient) {
+    public SimpleAgentService(QdrantRagStore ragStore, SimpleMcpClient mcpClient, SimpleModelClient modelClient) {
         this.ragStore = ragStore;
         this.mcpClient = mcpClient;
         this.modelClient = modelClient;
